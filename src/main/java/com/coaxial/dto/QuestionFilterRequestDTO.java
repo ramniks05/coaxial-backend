@@ -2,6 +2,9 @@ package com.coaxial.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Size;
 
 public class QuestionFilterRequestDTO {
     
@@ -9,7 +12,10 @@ public class QuestionFilterRequestDTO {
     private Boolean isActive;
     private String questionType;
     private String difficultyLevel;
+    @Min(value = 0, message = "Marks cannot be negative")
     private Integer minMarks;
+    
+    @Max(value = 100, message = "Marks cannot exceed 100")
     private Integer maxMarks;
     
     // Hierarchy filters
@@ -35,7 +41,10 @@ public class QuestionFilterRequestDTO {
     private List<String> examDifficulties; // Difficulty as appeared in exam
     
     // Search filters
+    @Size(max = 100, message = "Search text cannot exceed 100 characters")
     private String questionTextSearch;
+    
+    @Size(max = 100, message = "Search text cannot exceed 100 characters")
     private String explanationSearch;
     
     // Date filters
@@ -43,7 +52,11 @@ public class QuestionFilterRequestDTO {
     private LocalDateTime createdBefore;
     
     // Pagination
+    @Min(value = 0, message = "Page number cannot be negative")
     private Integer page = 0;
+    
+    @Min(value = 1, message = "Page size must be at least 1")
+    @Max(value = 100, message = "Page size cannot exceed 100")
     private Integer size = 20;
     
     // Constructors
@@ -130,4 +143,28 @@ public class QuestionFilterRequestDTO {
     
     public Integer getSize() { return size; }
     public void setSize(Integer size) { this.size = size; }
+    
+    @Override
+    public String toString() {
+        return "QuestionFilterRequestDTO{" +
+                "isActive=" + isActive +
+                ", questionType='" + questionType + '\'' +
+                ", difficultyLevel='" + difficultyLevel + '\'' +
+                ", minMarks=" + minMarks +
+                ", maxMarks=" + maxMarks +
+                ", courseTypeId=" + courseTypeId +
+                ", relationshipId=" + relationshipId +
+                ", subjectId=" + subjectId +
+                ", topicId=" + topicId +
+                ", moduleId=" + moduleId +
+                ", chapterId=" + chapterId +
+                ", examIds=" + examIds +
+                ", suitabilityLevels=" + suitabilityLevels +
+                ", appearedYears=" + appearedYears +
+                ", questionTextSearch='" + questionTextSearch + '\'' +
+                ", explanationSearch='" + explanationSearch + '\'' +
+                ", page=" + page +
+                ", size=" + size +
+                '}';
+    }
 }

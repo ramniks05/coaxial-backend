@@ -128,8 +128,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
            "AND (:topicId IS NULL OR q.topicId = :topicId) " +
            "AND (:moduleId IS NULL OR q.moduleId = :moduleId) " +
            "AND (:chapterId IS NULL OR q.chapter.id = :chapterId) " +
-           "AND (:questionTextSearch IS NULL OR LOWER(q.questionText) LIKE LOWER(CONCAT('%', :questionTextSearch, '%'))) " +
-           "AND (:explanationSearch IS NULL OR LOWER(q.explanation) LIKE LOWER(CONCAT('%', :explanationSearch, '%'))) " +
            "AND (:createdAfter IS NULL OR q.createdAt >= :createdAfter) " +
            "AND (:createdBefore IS NULL OR q.createdAt <= :createdBefore) " +
            "ORDER BY q.displayOrder ASC")
@@ -145,8 +143,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             @Param("topicId") Long topicId,
             @Param("moduleId") Long moduleId,
             @Param("chapterId") Long chapterId,
-            @Param("questionTextSearch") String questionTextSearch,
-            @Param("explanationSearch") String explanationSearch,
             @Param("createdAfter") LocalDateTime createdAfter,
             @Param("createdBefore") LocalDateTime createdBefore);
     
@@ -188,7 +184,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             @Param("questionNumbers") List<String> questionNumbers,
             @Param("examDifficulties") List<String> examDifficulties);
     
-    // Combined filtering query
+    // Combined filtering query with text search fix
     @Query("SELECT DISTINCT q FROM Question q " +
            "LEFT JOIN q.examSuitabilities es " +
            "LEFT JOIN q.examHistories eh " +
@@ -206,8 +202,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
            "AND (:examIds IS NULL OR es.masterExam.id IN :examIds) " +
            "AND (:suitabilityLevels IS NULL OR es.suitabilityLevel IN :suitabilityLevels) " +
            "AND (:appearedYears IS NULL OR eh.appearedYear.yearValue IN :appearedYears) " +
-           "AND (:questionTextSearch IS NULL OR LOWER(q.questionText) LIKE LOWER(CONCAT('%', :questionTextSearch, '%'))) " +
-           "AND (:explanationSearch IS NULL OR LOWER(q.explanation) LIKE LOWER(CONCAT('%', :explanationSearch, '%'))) " +
            "ORDER BY q.displayOrder ASC")
     Page<Question> findQuestionsWithEnhancedFilters(
             @Param("isActive") Boolean isActive,
@@ -224,7 +218,5 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             @Param("examIds") List<Long> examIds,
             @Param("suitabilityLevels") List<String> suitabilityLevels,
             @Param("appearedYears") List<Integer> appearedYears,
-            @Param("questionTextSearch") String questionTextSearch,
-            @Param("explanationSearch") String explanationSearch,
             Pageable pageable);
 }
