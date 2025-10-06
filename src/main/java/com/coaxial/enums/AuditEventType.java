@@ -1,0 +1,15 @@
+package com.coaxial.enums;
+
+public enum AuditEventType {
+    LOGIN_SUCCESS,
+    LOGIN_FAILURE,
+    LOGOUT,
+    TOKEN_REFRESH,
+    PASSWORD_RESET_REQUEST,
+    PASSWORD_RESET_SUCCESS,
+    ACCOUNT_LOCKED,
+    ACCOUNT_UNLOCKED,
+    REGISTRATION,
+    ACCOUNT_DISABLED,
+    ACCOUNT_ENABLED
+}

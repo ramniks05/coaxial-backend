@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Coaxial LMS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .welcome-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .welcome-card h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .user-details {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .user-details p {
+            margin: 0.5rem 0;
+        }
+        .user-details strong {
+            color: #333;
+        }
+        .management-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .section-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .section-card h3 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .section-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .section-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .action-btn:hover {
+            background: #2980b9;
+        }
+        .action-btn.secondary {
+            background: #95a5a6;
+        }
+        .action-btn.secondary:hover {
+            background: #7f8c8d;
+        }
+        .action-btn.success {
+            background: #27ae60;
+        }
+        .action-btn.success:hover {
+            background: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Coaxial LMS Dashboard</h1>
+        <div class="user-info">
+            <span>Welcome, <span th:text="${#authentication.name}">User</span>!</span>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2>Welcome to Coaxial Learning Management System</h2>
+            <p>You have successfully logged in to the system.</p>
+            
+            <div class="user-details">
+                <p><strong>Username:</strong> <span th:text="${#authentication.name}">admin</span></p>
+                <p><strong>Role:</strong> <span th:text="${#authentication.authorities[0].authority}">ROLE_ADMIN</span></p>
+                <p><strong>Login Method:</strong> Local Authentication</p>
+            </div>
+        </div>
+        
+        <!-- Management Sections -->
+        <div class="management-sections">
+            <!-- Question Management Section -->
+            <div class="section-card">
+                <h3>Question Management</h3>
+                <div class="section-actions">
+                    <a href="/api/admin/master-data/questions" target="_blank" rel="noopener" class="action-btn">View All Questions</a>
+                    <button type="button" class="action-btn success" onclick="openQuestionForm()" id="createQuestionBtn">Create Question</button>
+                </div>
+            </div>
+            
+            <!-- Course Management Section -->
+            <div class="section-card">
+                <h3>📚 Course Management</h3>
+                <p>Manage your course structure including subjects, topics, modules, and chapters.</p>
+                <div class="section-actions">
+                    <a href="/api/admin/master-data/subjects" class="action-btn">Subjects</a>
+                    <a href="/api/admin/master-data/topics" class="action-btn">Topics</a>
+                    <a href="/api/admin/master-data/modules" class="action-btn">Modules</a>
+                    <a href="/api/admin/master-data/chapters" class="action-btn">Chapters</a>
+                </div>
+            </div>
+            
+            <!-- Test Management Section -->
+            <div class="section-card">
+                <h3>📋 Test Management</h3>
+                <p>Create and manage tests, exams, and assessments for your students.</p>
+                <div class="section-actions">
+                    <a href="#" class="action-btn">View Tests</a>
+                    <a href="#" class="action-btn success">Create Test</a>
+                    <a href="#" class="action-btn secondary">Test Analytics</a>
+                </div>
+            </div>
+            
+            <!-- User Management Section -->
+            <div class="section-card">
+                <h3>👥 User Management</h3>
+                <p>Manage students, teachers, and administrators in your system.</p>
+                <div class="section-actions">
+                    <a href="#" class="action-btn">View Users</a>
+                    <a href="#" class="action-btn success">Add User</a>
+                    <a href="#" class="action-btn secondary">User Reports</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Question Form Modal (Hidden by default) -->
+    <div id="questionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; max-width: 700px; width: 90%; max-height: 90%; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Create New Question</h3>
+                <button type="button" onclick="closeQuestionForm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+            </div>
+            <form id="questionForm">
+                <div style="margin-bottom: 1rem;">
+                    <label for="questionText" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Question Text:</label>
+                    <textarea id="questionText" name="questionText" rows="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" required></textarea>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="questionType" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Question Type:</label>
+                    <select id="questionType" name="questionType" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                        <option value="TRUE_FALSE">True/False</option>
+                        <option value="FILL_BLANK">Fill in the Blank</option>
+                        <option value="ESSAY">Essay</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="difficultyLevel" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Difficulty Level:</label>
+                    <select id="difficultyLevel" name="difficultyLevel" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="EASY">Easy</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HARD">Hard</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="courseTypeId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Course Type:</label>
+                    <select id="courseTypeId" name="courseTypeId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadCourses()">
+                        <option value="">Select Course Type</option>
+                        <option value="1">Academic</option>
+                        <option value="2">Competitive</option>
+                        <option value="3">Professional</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="courseId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Course:</label>
+                    <select id="courseId" name="courseId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadClassesOrExams()">
+                        <option value="">Select Course</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="classOrExamId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Class/Exam:</label>
+                    <select id="classOrExamId" name="classOrExamId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadSubjects()">
+                        <option value="">Select Class/Exam</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="subjectId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Subject:</label>
+                    <select id="subjectId" name="subjectId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadTopics()">
+                        <option value="">Select Subject</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="topicId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Topic:</label>
+                    <select id="topicId" name="topicId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadModules()">
+                        <option value="">Select Topic</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="moduleId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Module:</label>
+                    <select id="moduleId" name="moduleId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" onchange="loadChapters()">
+                        <option value="">Select Module</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="chapterId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Chapter:</label>
+                    <select id="chapterId" name="chapterId" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" required>
+                        <option value="">Select Chapter</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="marks" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Marks:</label>
+                    <input type="number" id="marks" name="marks" value="1" min="1" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" required>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="displayOrder" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Display Order:</label>
+                    <input type="number" id="displayOrder" name="displayOrder" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="explanation" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Explanation (Optional):</label>
+                    <textarea id="explanation" name="explanation" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeQuestionForm()" class="action-btn secondary">Cancel</button>
+                    <button type="submit" class="action-btn success">Create Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Ensure the function is available when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up question form...');
+            
+            // Add event listener to the button as backup
+            const createBtn = document.getElementById('createQuestionBtn');
+            if (createBtn) {
+                createBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Button clicked via event listener');
+                    openQuestionForm();
+                });
+            }
+        });
+        
+        function openQuestionForm() {
+            console.log('Opening question form...');
+            const modal = document.getElementById('questionModal');
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Modal displayed');
+                // Reset all dropdowns
+                resetAllDropdowns();
+            } else {
+                console.error('Modal element not found!');
+                alert('Error: Modal not found. Please refresh the page.');
+            }
+        }
+        
+        function closeQuestionForm() {
+            document.getElementById('questionModal').style.display = 'none';
+            document.getElementById('questionForm').reset();
+            resetAllDropdowns();
+        }
+        
+        function resetAllDropdowns() {
+            document.getElementById('courseId').innerHTML = '<option value="">Select Course</option>';
+            document.getElementById('classOrExamId').innerHTML = '<option value="">Select Class/Exam</option>';
+            document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+            document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+            document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+            document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+        }
+        
+        // Prevent duplicate loads
+        let isLoadingCourses = false;
+        let isLoadingClassExam = false;
+        let isLoadingSubjects = false;
+        let isLoadingTopics = false;
+        let isLoadingModules = false;
+        let isLoadingChapters = false;
+
+        function loadCourses() {
+            if (isLoadingCourses) return;
+            const courseTypeId = document.getElementById('courseTypeId').value;
+            if (!courseTypeId) {
+                resetAllDropdowns();
+                return;
+            }
+            
+            isLoadingCourses = true;
+            fetch(`/api/admin/master-data/courses/course-type/${courseTypeId}`)
+                .then(response => response.json())
+                .then(courses => {
+                    const select = document.getElementById('courseId');
+                    select.innerHTML = '<option value="">Select Course</option>';
+                    courses.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course.id;
+                        option.textContent = course.name;
+                        select.appendChild(option);
+                    });
+                    // Reset dependent dropdowns
+                    document.getElementById('classOrExamId').innerHTML = '<option value="">Select Class/Exam</option>';
+                    document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                })
+                .catch(error => {
+                    console.error('Error loading courses:', error);
+                    alert('Error loading courses. Please try again.');
+                })
+                .finally(() => { isLoadingCourses = false; });
+        }
+        
+        function loadClassesOrExams() {
+            if (isLoadingClassExam) return;
+            const courseId = document.getElementById('courseId').value;
+            const courseTypeId = document.getElementById('courseTypeId').value;
+            
+            if (!courseId || !courseTypeId) {
+                document.getElementById('classOrExamId').innerHTML = '<option value="">Select Class/Exam</option>';
+                document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                return;
+            }
+            
+            let endpoint = '';
+            if (courseTypeId === '1') {
+                // Academic - load classes
+                endpoint = `/api/admin/master-data/classes/course/${courseId}`;
+            } else if (courseTypeId === '2') {
+                // Competitive - load exams
+                endpoint = `/api/admin/master-data/exams/course/${courseId}`;
+            } else if (courseTypeId === '3') {
+                // Professional - load course subjects directly
+                loadSubjects();
+                return;
+            }
+            
+            isLoadingClassExam = true;
+            fetch(endpoint)
+                .then(response => response.json())
+                .then(items => {
+                    const select = document.getElementById('classOrExamId');
+                    select.innerHTML = '<option value="">Select Class/Exam</option>';
+                    items.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        select.appendChild(option);
+                    });
+                    // Reset dependent dropdowns
+                    document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                })
+                .catch(error => {
+                    console.error('Error loading classes/exams:', error);
+                    alert('Error loading classes/exams. Please try again.');
+                })
+                .finally(() => { isLoadingClassExam = false; });
+        }
+        
+        function loadSubjects() {
+            if (isLoadingSubjects) return;
+            const courseTypeId = document.getElementById('courseTypeId').value;
+            const courseId = document.getElementById('courseId').value;
+            const classOrExamId = document.getElementById('classOrExamId').value;
+            
+            if (!courseTypeId || !courseId) {
+                document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                return;
+            }
+            
+            let endpoint = '';
+            if (courseTypeId === '1') {
+                // Academic - load class subjects
+                if (!classOrExamId) return;
+                endpoint = `/api/admin/master-data/class-subjects/class/${classOrExamId}`;
+            } else if (courseTypeId === '2') {
+                // Competitive - load exam subjects
+                if (!classOrExamId) return;
+                endpoint = `/api/admin/master-data/exam-subjects/exam/${classOrExamId}`;
+            } else if (courseTypeId === '3') {
+                // Professional - load course subjects
+                endpoint = `/api/admin/master-data/course-subjects/course/${courseId}`;
+            }
+            
+            isLoadingSubjects = true;
+            fetch(endpoint)
+                .then(response => response.json())
+                .then(subjects => {
+                    const select = document.getElementById('subjectId');
+                    select.innerHTML = '<option value="">Select Subject</option>';
+                    subjects.forEach(subject => {
+                        const option = document.createElement('option');
+                        option.value = subject.subjectId || subject.id;
+                        option.textContent = subject.subjectName || subject.name;
+                        select.appendChild(option);
+                    });
+                    // Reset dependent dropdowns
+                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                })
+                .catch(error => {
+                    console.error('Error loading subjects:', error);
+                    alert('Error loading subjects. Please try again.');
+                })
+                .finally(() => { isLoadingSubjects = false; });
+        }
+        
+        function loadTopics() {
+            if (isLoadingTopics) return;
+            const courseTypeId = document.getElementById('courseTypeId').value;
+            const subjectId = document.getElementById('subjectId').value;
+            const classOrExamId = document.getElementById('classOrExamId').value;
+            
+            if (!courseTypeId || !subjectId) {
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                return;
+            }
+            
+            // Find the relationship ID based on course type
+            let relationshipId = null;
+            if (courseTypeId === '1') {
+                // Academic - find class subject ID
+                relationshipId = classOrExamId; // This should be the class subject ID
+            } else if (courseTypeId === '2') {
+                // Competitive - find exam subject ID
+                relationshipId = classOrExamId; // This should be the exam subject ID
+            } else if (courseTypeId === '3') {
+                // Professional - find course subject ID
+                relationshipId = classOrExamId; // This should be the course subject ID
+            }
+            
+            if (!relationshipId) return;
+            
+            isLoadingTopics = true;
+            fetch(`/api/admin/master-data/topics?courseTypeId=${courseTypeId}&relationshipId=${relationshipId}`)
+                .then(response => response.json())
+                .then(topics => {
+                    const select = document.getElementById('topicId');
+                    select.innerHTML = '<option value="">Select Topic</option>';
+                    topics.forEach(topic => {
+                        const option = document.createElement('option');
+                        option.value = topic.id;
+                        option.textContent = topic.name;
+                        select.appendChild(option);
+                    });
+                    // Reset dependent dropdowns
+                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                })
+                .catch(error => {
+                    console.error('Error loading topics:', error);
+                    alert('Error loading topics. Please try again.');
+                })
+                .finally(() => { isLoadingTopics = false; });
+        }
+        
+        function loadModules() {
+            if (isLoadingModules) return;
+            const topicId = document.getElementById('topicId').value;
+            if (!topicId) {
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                return;
+            }
+            
+            isLoadingModules = true;
+            fetch(`/api/admin/master-data/modules?topicId=${topicId}`)
+                .then(response => response.json())
+                .then(modules => {
+                    const select = document.getElementById('moduleId');
+                    select.innerHTML = '<option value="">Select Module</option>';
+                    modules.forEach(module => {
+                        const option = document.createElement('option');
+                        option.value = module.id;
+                        option.textContent = module.name;
+                        select.appendChild(option);
+                    });
+                    // Reset dependent dropdown
+                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                })
+                .catch(error => {
+                    console.error('Error loading modules:', error);
+                    alert('Error loading modules. Please try again.');
+                })
+                .finally(() => { isLoadingModules = false; });
+        }
+        
+        function loadChapters() {
+            if (isLoadingChapters) return;
+            const moduleId = document.getElementById('moduleId').value;
+            if (!moduleId) {
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+                return;
+            }
+            
+            isLoadingChapters = true;
+            fetch(`/api/admin/master-data/chapters/module/${moduleId}`)
+                .then(response => response.json())
+                .then(chapters => {
+                    const select = document.getElementById('chapterId');
+                    select.innerHTML = '<option value="">Select Chapter</option>';
+                    chapters.forEach(chapter => {
+                        const option = document.createElement('option');
+                        option.value = chapter.id;
+                        option.textContent = chapter.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading chapters:', error);
+                    alert('Error loading chapters. Please try again.');
+                })
+                .finally(() => { isLoadingChapters = false; });
+        }
+        
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate required fields
+            const questionText = document.getElementById('questionText').value.trim();
+            const chapterId = document.getElementById('chapterId').value;
+            
+            if (!questionText) {
+                alert('Please enter the question text.');
+                return;
+            }
+            
+            if (!chapterId) {
+                alert('Please select a chapter.');
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const questionData = {
+                questionText: questionText,
+                questionType: formData.get('questionType'),
+                difficultyLevel: formData.get('difficultyLevel'),
+                chapterId: parseInt(chapterId),
+                courseTypeId: formData.get('courseTypeId') ? parseInt(formData.get('courseTypeId')) : null,
+                courseId: formData.get('courseId') ? parseInt(formData.get('courseId')) : null,
+                classOrExamId: formData.get('classOrExamId') ? parseInt(formData.get('classOrExamId')) : null,
+                subjectId: formData.get('subjectId') ? parseInt(formData.get('subjectId')) : null,
+                topicId: formData.get('topicId') ? parseInt(formData.get('topicId')) : null,
+                moduleId: formData.get('moduleId') ? parseInt(formData.get('moduleId')) : null,
+                marks: parseInt(formData.get('marks')),
+                displayOrder: parseInt(formData.get('displayOrder')),
+                explanation: formData.get('explanation'),
+                isActive: true
+            };
+            
+            console.log('Submitting question data:', questionData);
+            
+            fetch('/api/admin/master-data/questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(questionData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Question created successfully!');
+                    closeQuestionForm();
+                } else {
+                    alert('Error creating question. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating question. Please try again.');
+            });
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('questionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQuestionForm();
+            }
+        });
+    </script>
+</body>
+</html>
