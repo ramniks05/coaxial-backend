@@ -125,29 +125,38 @@ public class QuestionService {
     
     // Enhanced filtering methods
     public Page<QuestionResponseDTO> getQuestionsWithEnhancedFilters(QuestionFilterRequestDTO filter) {
-        Pageable pageable = Pageable.ofSize(filter.getSize()).withPage(filter.getPage());
-        
-        Page<Question> questions = questionRepository.findQuestionsWithEnhancedFilters(
-            filter.getIsActive(),
-            filter.getQuestionType(),
-            filter.getDifficultyLevel(),
-            filter.getMinMarks(),
-            filter.getMaxMarks(),
-            filter.getCourseTypeId(),
-            filter.getRelationshipId(),
-            filter.getSubjectId(),
-            filter.getTopicId(),
-            filter.getModuleId(),
-            filter.getChapterId(),
-            filter.getExamIds(),
-            filter.getSuitabilityLevels(),
-            filter.getAppearedYears(),
-            filter.getQuestionTextSearch(),
-            filter.getExplanationSearch(),
-            pageable
-        );
-        
-        return questions.map(this::createQuestionResponseDTO);
+        try {
+            System.out.println("Filter request: " + filter.toString());
+            
+            Pageable pageable = Pageable.ofSize(filter.getSize()).withPage(filter.getPage());
+            System.out.println("Pageable created: page=" + pageable.getPageNumber() + ", size=" + pageable.getPageSize());
+            
+            Page<Question> questions = questionRepository.findQuestionsWithEnhancedFilters(
+                filter.getIsActive(),
+                filter.getQuestionType(),
+                filter.getDifficultyLevel(),
+                filter.getMinMarks(),
+                filter.getMaxMarks(),
+                filter.getCourseTypeId(),
+                filter.getRelationshipId(),
+                filter.getSubjectId(),
+                filter.getTopicId(),
+                filter.getModuleId(),
+                filter.getChapterId(),
+                filter.getExamIds(),
+                filter.getSuitabilityLevels(),
+                filter.getAppearedYears(),
+                pageable
+            );
+            
+            System.out.println("Found " + questions.getTotalElements() + " questions");
+            
+            return questions.map(this::createQuestionResponseDTO);
+        } catch (Exception e) {
+            System.err.println("Error in getQuestionsWithEnhancedFilters: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to filter questions: " + e.getMessage(), e);
+        }
     }
     
     public List<QuestionResponseDTO> getQuestionsByExamSuitability(List<Long> examIds, List<String> suitabilityLevels) {
@@ -193,8 +202,6 @@ public class QuestionService {
             topicId,
             moduleId,
             chapterId,
-            null, // questionTextSearch
-            null, // explanationSearch
             null, // createdAfter
             null  // createdBefore
         );

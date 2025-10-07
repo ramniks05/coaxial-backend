@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/admin/master-data/questions")
 @PreAuthorize("hasRole('ADMIN')")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"}, allowCredentials = "true")
 public class QuestionController {
     
     private final QuestionService questionService;
@@ -173,6 +175,33 @@ public class QuestionController {
         return ResponseEntity.ok(response);
     }
     
+    // Test endpoint for debugging
+    @GetMapping("/test")
+    public ResponseEntity<?> testEndpoint() {
+        try {
+            System.out.println("Testing database connection...");
+            List<QuestionResponseDTO> questions = questionService.getAllQuestions();
+            System.out.println("Found " + questions.size() + " questions in database");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "OK");
+            response.put("totalQuestions", questions.size());
+            response.put("message", "Database connection successful");
+            response.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Test endpoint error: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Database connection failed: " + e.getMessage());
+            error.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
     // Get question statistics
     @GetMapping("/statistics")
     public ResponseEntity<Map<String, Object>> getQuestionStatistics() {
@@ -210,13 +239,40 @@ public class QuestionController {
     // Advanced filtering with all criteria
     @PostMapping("/filter")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
-    public ResponseEntity<Page<QuestionResponseDTO>> getQuestionsWithEnhancedFilters(
+    public ResponseEntity<?> getQuestionsWithEnhancedFilters(
             @Valid @RequestBody QuestionFilterRequestDTO filter) {
         try {
+            System.out.println("Received filter request: " + filter.toString());
+            
+            // Validate marks range
+            if (filter.getMinMarks() != null && filter.getMaxMarks() != null 
+                && filter.getMinMarks() > filter.getMaxMarks()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Min marks cannot be greater than max marks"));
+            }
+            
+            // Validate pagination parameters
+            if (filter.getPage() == null) filter.setPage(0);
+            if (filter.getSize() == null) filter.setSize(20);
+            if (filter.getSize() > 100) filter.setSize(100);
+            
             Page<QuestionResponseDTO> questions = questionService.getQuestionsWithEnhancedFilters(filter);
+            System.out.println("Successfully returned " + questions.getContent().size() + " questions");
+            
             return ResponseEntity.ok(questions);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Validation error: " + e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            System.err.println("Unexpected error in filter endpoint: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "An error occurred while filtering questions: " + e.getMessage());
+            error.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -291,7 +347,7 @@ public class QuestionController {
     // Legacy enhanced filtering endpoint with query parameters
     @GetMapping("/filter-advanced")
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
-    public ResponseEntity<List<QuestionResponseDTO>> getQuestionsWithAdvancedFilters(
+    public ResponseEntity<?> getQuestionsWithAdvancedFilters(
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String questionType,
             @RequestParam(required = false) String difficultyLevel,
@@ -329,8 +385,12 @@ public class QuestionController {
             
             List<QuestionResponseDTO> questions = questionService.getQuestionsWithEnhancedFilters(filter).getContent();
             return ResponseEntity.ok(questions);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "An error occurred while filtering questions"));
         }
     }
 }
