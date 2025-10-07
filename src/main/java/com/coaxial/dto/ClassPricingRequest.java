@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Request DTO for setting class pricing in admin pricing management
@@ -24,6 +25,8 @@ public class ClassPricingRequest {
     @NotBlank(message = "Course name is required")
     private String courseName;
     
+    private Long courseTypeId; // For bulk discount updates by course type
+    
     @NotNull(message = "Monthly price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
     private BigDecimal monthlyPrice;
@@ -36,14 +39,9 @@ public class ClassPricingRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
     private BigDecimal yearlyPrice;
     
-    @Min(value = 1, message = "Duration must be at least 1 day")
-    private Integer monthlyDurationDays = 30;
-    
-    @Min(value = 1, message = "Duration must be at least 1 day")
-    private Integer quarterlyDurationDays = 90;
-    
-    @Min(value = 1, message = "Duration must be at least 1 day")
-    private Integer yearlyDurationDays = 365;
+    @Min(value = 0, message = "Discount cannot be negative")
+    @Max(value = 100, message = "Discount cannot exceed 100%")
+    private Integer monthlyDiscountPercent = 0;
     
     @Min(value = 0, message = "Discount cannot be negative")
     @Max(value = 100, message = "Discount cannot exceed 100%")
@@ -52,6 +50,18 @@ public class ClassPricingRequest {
     @Min(value = 0, message = "Discount cannot be negative")
     @Max(value = 100, message = "Discount cannot exceed 100%")
     private Integer yearlyDiscountPercent = 20;
+    
+    // Offer validity dates for Monthly
+    private LocalDateTime monthlyOfferValidFrom;
+    private LocalDateTime monthlyOfferValidTo;
+    
+    // Offer validity dates for Quarterly
+    private LocalDateTime quarterlyOfferValidFrom;
+    private LocalDateTime quarterlyOfferValidTo;
+    
+    // Offer validity dates for Yearly
+    private LocalDateTime yearlyOfferValidFrom;
+    private LocalDateTime yearlyOfferValidTo;
     
     private Boolean isActive = true;
     
@@ -102,6 +112,14 @@ public class ClassPricingRequest {
         this.courseName = courseName;
     }
     
+    public Long getCourseTypeId() {
+        return courseTypeId;
+    }
+    
+    public void setCourseTypeId(Long courseTypeId) {
+        this.courseTypeId = courseTypeId;
+    }
+    
     public BigDecimal getMonthlyPrice() {
         return monthlyPrice;
     }
@@ -126,28 +144,12 @@ public class ClassPricingRequest {
         this.yearlyPrice = yearlyPrice;
     }
     
-    public Integer getMonthlyDurationDays() {
-        return monthlyDurationDays;
+    public Integer getMonthlyDiscountPercent() {
+        return monthlyDiscountPercent;
     }
     
-    public void setMonthlyDurationDays(Integer monthlyDurationDays) {
-        this.monthlyDurationDays = monthlyDurationDays;
-    }
-    
-    public Integer getQuarterlyDurationDays() {
-        return quarterlyDurationDays;
-    }
-    
-    public void setQuarterlyDurationDays(Integer quarterlyDurationDays) {
-        this.quarterlyDurationDays = quarterlyDurationDays;
-    }
-    
-    public Integer getYearlyDurationDays() {
-        return yearlyDurationDays;
-    }
-    
-    public void setYearlyDurationDays(Integer yearlyDurationDays) {
-        this.yearlyDurationDays = yearlyDurationDays;
+    public void setMonthlyDiscountPercent(Integer monthlyDiscountPercent) {
+        this.monthlyDiscountPercent = monthlyDiscountPercent;
     }
     
     public Integer getQuarterlyDiscountPercent() {
@@ -164,6 +166,54 @@ public class ClassPricingRequest {
     
     public void setYearlyDiscountPercent(Integer yearlyDiscountPercent) {
         this.yearlyDiscountPercent = yearlyDiscountPercent;
+    }
+    
+    public LocalDateTime getMonthlyOfferValidFrom() {
+        return monthlyOfferValidFrom;
+    }
+    
+    public void setMonthlyOfferValidFrom(LocalDateTime monthlyOfferValidFrom) {
+        this.monthlyOfferValidFrom = monthlyOfferValidFrom;
+    }
+    
+    public LocalDateTime getMonthlyOfferValidTo() {
+        return monthlyOfferValidTo;
+    }
+    
+    public void setMonthlyOfferValidTo(LocalDateTime monthlyOfferValidTo) {
+        this.monthlyOfferValidTo = monthlyOfferValidTo;
+    }
+    
+    public LocalDateTime getQuarterlyOfferValidFrom() {
+        return quarterlyOfferValidFrom;
+    }
+    
+    public void setQuarterlyOfferValidFrom(LocalDateTime quarterlyOfferValidFrom) {
+        this.quarterlyOfferValidFrom = quarterlyOfferValidFrom;
+    }
+    
+    public LocalDateTime getQuarterlyOfferValidTo() {
+        return quarterlyOfferValidTo;
+    }
+    
+    public void setQuarterlyOfferValidTo(LocalDateTime quarterlyOfferValidTo) {
+        this.quarterlyOfferValidTo = quarterlyOfferValidTo;
+    }
+    
+    public LocalDateTime getYearlyOfferValidFrom() {
+        return yearlyOfferValidFrom;
+    }
+    
+    public void setYearlyOfferValidFrom(LocalDateTime yearlyOfferValidFrom) {
+        this.yearlyOfferValidFrom = yearlyOfferValidFrom;
+    }
+    
+    public LocalDateTime getYearlyOfferValidTo() {
+        return yearlyOfferValidTo;
+    }
+    
+    public void setYearlyOfferValidTo(LocalDateTime yearlyOfferValidTo) {
+        this.yearlyOfferValidTo = yearlyOfferValidTo;
     }
     
     public Boolean getIsActive() {
@@ -184,9 +234,7 @@ public class ClassPricingRequest {
                 ", monthlyPrice=" + monthlyPrice +
                 ", quarterlyPrice=" + quarterlyPrice +
                 ", yearlyPrice=" + yearlyPrice +
-                ", monthlyDurationDays=" + monthlyDurationDays +
-                ", quarterlyDurationDays=" + quarterlyDurationDays +
-                ", yearlyDurationDays=" + yearlyDurationDays +
+                ", monthlyDiscountPercent=" + monthlyDiscountPercent +
                 ", quarterlyDiscountPercent=" + quarterlyDiscountPercent +
                 ", yearlyDiscountPercent=" + yearlyDiscountPercent +
                 ", isActive=" + isActive +

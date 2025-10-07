@@ -88,23 +88,34 @@ public class PricingService {
         Map<String, Object> pricing = new HashMap<>();
         Map<String, Integer> amounts = new HashMap<>();
         Map<String, String> discounts = new HashMap<>();
-        Map<String, Integer> durations = new HashMap<>();
+        Map<String, Object> offerValidity = new HashMap<>();
         
         // Convert BigDecimal to Integer (rupees)
         amounts.put("monthly", config.getMonthlyPrice().intValue());
         amounts.put("quarterly", config.getQuarterlyPrice().intValue());
         amounts.put("yearly", config.getYearlyPrice().intValue());
         
+        discounts.put("monthly", config.getMonthlyDiscountPercent() + "% OFF");
         discounts.put("quarterly", config.getQuarterlyDiscountPercent() + "% OFF");
         discounts.put("yearly", config.getYearlyDiscountPercent() + "% OFF");
         
-        durations.put("monthly", config.getMonthlyDurationDays());
-        durations.put("quarterly", config.getQuarterlyDurationDays());
-        durations.put("yearly", config.getYearlyDurationDays());
+        // Offer validity dates
+        offerValidity.put("monthly", Map.of(
+            "validFrom", config.getMonthlyOfferValidFrom(),
+            "validTo", config.getMonthlyOfferValidTo()
+        ));
+        offerValidity.put("quarterly", Map.of(
+            "validFrom", config.getQuarterlyOfferValidFrom(),
+            "validTo", config.getQuarterlyOfferValidTo()
+        ));
+        offerValidity.put("yearly", Map.of(
+            "validFrom", config.getYearlyOfferValidFrom(),
+            "validTo", config.getYearlyOfferValidTo()
+        ));
         
         pricing.put("amounts", amounts);
         pricing.put("discounts", discounts);
-        pricing.put("durations", durations);
+        pricing.put("offerValidity", offerValidity);
         pricing.put("subscriptionLevel", config.getEntityType());
         pricing.put("entityId", config.getEntityId());
         pricing.put("entityName", config.getEntityName());

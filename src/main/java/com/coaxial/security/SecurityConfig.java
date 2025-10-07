@@ -75,7 +75,8 @@ public class SecurityConfig {
                     "/api/auth/logout",
                     "/api/auth/register",
                     "/api/auth/test",
-                    "/api/auth/create-admin"
+                    "/api/auth/create-admin",
+                    "/api/public/**"
                 ).permitAll()
                 
                 // Admin endpoints

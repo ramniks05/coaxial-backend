@@ -392,4 +392,81 @@ public class AdminPricingController {
                 ));
         }
     }
+    
+    /**
+     * Bulk update discounts by course type
+     * PUT /api/admin/pricing/bulk-update-discount-by-course-type
+     */
+    @PutMapping("/bulk-update-discount-by-course-type")
+    public ResponseEntity<?> bulkUpdateDiscountByCourseType(
+            @Valid @RequestBody com.coaxial.dto.BulkDiscountUpdateRequest request) {
+        try {
+            logger.info("Admin bulk updating discounts for courseTypeId: {}, level: {}", 
+                    request.getCourseTypeId(), request.getLevel());
+            
+            int updatedCount = adminPricingService.bulkUpdateDiscountByCourseType(request);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "updatedCount", updatedCount,
+                "message", String.format("Successfully updated discounts for %d %s(s)", 
+                        updatedCount, request.getLevel().name().toLowerCase()),
+                "courseTypeId", request.getCourseTypeId(),
+                "level", request.getLevel().name()
+            ));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid bulk discount update request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                    "success", false, 
+                    "message", e.getMessage()
+                ));
+        } catch (Exception e) {
+            logger.error("Error bulk updating discounts", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "success", false, 
+                    "message", "Error bulk updating discounts: " + e.getMessage()
+                ));
+        }
+    }
+    
+    /**
+     * Filter pricing configurations
+     * GET /api/admin/pricing/filter?courseTypeId=1&entityType=COURSE&isActive=true&search=Java
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterPricingConfigurations(
+            @RequestParam(required = false) Long courseTypeId,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String search) {
+        try {
+            logger.info("Admin filtering pricing configurations - courseTypeId: {}, entityType: {}, isActive: {}, search: {}", 
+                    courseTypeId, entityType, isActive, search);
+            
+            List<com.coaxial.dto.PricingFilterResponse> results = adminPricingService.filterPricingConfigurations(
+                    courseTypeId, entityType, isActive, search);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", results,
+                "count", results.size(),
+                "message", "Pricing configurations retrieved successfully",
+                "filters", Map.of(
+                    "courseTypeId", courseTypeId != null ? courseTypeId : "all",
+                    "entityType", entityType != null ? entityType : "all",
+                    "isActive", isActive != null ? isActive : "all",
+                    "search", search != null ? search : ""
+                )
+            ));
+        } catch (Exception e) {
+            logger.error("Error filtering pricing configurations", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "success", false, 
+                    "message", "Error filtering pricing configurations: " + e.getMessage()
+                ));
+        }
+    }
 }

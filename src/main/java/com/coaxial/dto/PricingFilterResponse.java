@@ -1,91 +1,85 @@
 package com.coaxial.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Request DTO for setting exam pricing in admin pricing management
+ * Response DTO for pricing configuration filtering
  */
-public class ExamPricingRequest {
+public class PricingFilterResponse {
     
-    @NotNull(message = "Exam ID is required")
-    private Long examId;
+    private Long id;
+    private String entityType; // COURSE, CLASS, EXAM
+    private Long entityId;
+    private String entityName;
+    private Long courseTypeId;
+    private String courseTypeName;
     
-    @NotBlank(message = "Exam name is required")
-    private String examName;
-    
-    private Long courseTypeId; // For bulk discount updates by course type
-    
-    @NotNull(message = "Monthly price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+    // Pricing
     private BigDecimal monthlyPrice;
-    
-    @NotNull(message = "Quarterly price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
     private BigDecimal quarterlyPrice;
-    
-    @NotNull(message = "Yearly price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
     private BigDecimal yearlyPrice;
     
-    @Min(value = 0, message = "Discount cannot be negative")
-    @Max(value = 100, message = "Discount cannot exceed 100%")
-    private Integer monthlyDiscountPercent = 0;
+    // Discounts
+    private Integer monthlyDiscountPercent;
+    private Integer quarterlyDiscountPercent;
+    private Integer yearlyDiscountPercent;
     
-    @Min(value = 0, message = "Discount cannot be negative")
-    @Max(value = 100, message = "Discount cannot exceed 100%")
-    private Integer quarterlyDiscountPercent = 10;
+    // Calculated final prices (after discount)
+    private BigDecimal monthlyFinalPrice;
+    private BigDecimal quarterlyFinalPrice;
+    private BigDecimal yearlyFinalPrice;
     
-    @Min(value = 0, message = "Discount cannot be negative")
-    @Max(value = 100, message = "Discount cannot exceed 100%")
-    private Integer yearlyDiscountPercent = 20;
-    
-    // Offer validity dates for Monthly
+    // Offer validity
     private LocalDateTime monthlyOfferValidFrom;
     private LocalDateTime monthlyOfferValidTo;
-    
-    // Offer validity dates for Quarterly
     private LocalDateTime quarterlyOfferValidFrom;
     private LocalDateTime quarterlyOfferValidTo;
-    
-    // Offer validity dates for Yearly
     private LocalDateTime yearlyOfferValidFrom;
     private LocalDateTime yearlyOfferValidTo;
     
-    private Boolean isActive = true;
+    // Status
+    private Boolean isActive;
+    private Boolean isOfferActive; // Whether offer is currently valid
+    
+    // Timestamps
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     
     // Constructors
-    public ExamPricingRequest() {}
-    
-    public ExamPricingRequest(Long examId, String examName, BigDecimal monthlyPrice, 
-                             BigDecimal quarterlyPrice, BigDecimal yearlyPrice) {
-        this.examId = examId;
-        this.examName = examName;
-        this.monthlyPrice = monthlyPrice;
-        this.quarterlyPrice = quarterlyPrice;
-        this.yearlyPrice = yearlyPrice;
-    }
+    public PricingFilterResponse() {}
     
     // Getters and Setters
-    public Long getExamId() {
-        return examId;
+    public Long getId() {
+        return id;
     }
     
-    public void setExamId(Long examId) {
-        this.examId = examId;
+    public void setId(Long id) {
+        this.id = id;
     }
     
-    public String getExamName() {
-        return examName;
+    public String getEntityType() {
+        return entityType;
     }
     
-    public void setExamName(String examName) {
-        this.examName = examName;
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
+    }
+    
+    public Long getEntityId() {
+        return entityId;
+    }
+    
+    public void setEntityId(Long entityId) {
+        this.entityId = entityId;
+    }
+    
+    public String getEntityName() {
+        return entityName;
+    }
+    
+    public void setEntityName(String entityName) {
+        this.entityName = entityName;
     }
     
     public Long getCourseTypeId() {
@@ -94,6 +88,14 @@ public class ExamPricingRequest {
     
     public void setCourseTypeId(Long courseTypeId) {
         this.courseTypeId = courseTypeId;
+    }
+    
+    public String getCourseTypeName() {
+        return courseTypeName;
+    }
+    
+    public void setCourseTypeName(String courseTypeName) {
+        this.courseTypeName = courseTypeName;
     }
     
     public BigDecimal getMonthlyPrice() {
@@ -142,6 +144,30 @@ public class ExamPricingRequest {
     
     public void setYearlyDiscountPercent(Integer yearlyDiscountPercent) {
         this.yearlyDiscountPercent = yearlyDiscountPercent;
+    }
+    
+    public BigDecimal getMonthlyFinalPrice() {
+        return monthlyFinalPrice;
+    }
+    
+    public void setMonthlyFinalPrice(BigDecimal monthlyFinalPrice) {
+        this.monthlyFinalPrice = monthlyFinalPrice;
+    }
+    
+    public BigDecimal getQuarterlyFinalPrice() {
+        return quarterlyFinalPrice;
+    }
+    
+    public void setQuarterlyFinalPrice(BigDecimal quarterlyFinalPrice) {
+        this.quarterlyFinalPrice = quarterlyFinalPrice;
+    }
+    
+    public BigDecimal getYearlyFinalPrice() {
+        return yearlyFinalPrice;
+    }
+    
+    public void setYearlyFinalPrice(BigDecimal yearlyFinalPrice) {
+        this.yearlyFinalPrice = yearlyFinalPrice;
     }
     
     public LocalDateTime getMonthlyOfferValidFrom() {
@@ -200,18 +226,28 @@ public class ExamPricingRequest {
         this.isActive = isActive;
     }
     
-    @Override
-    public String toString() {
-        return "ExamPricingRequest{" +
-                "examId=" + examId +
-                ", examName='" + examName + '\'' +
-                ", monthlyPrice=" + monthlyPrice +
-                ", quarterlyPrice=" + quarterlyPrice +
-                ", yearlyPrice=" + yearlyPrice +
-                ", monthlyDiscountPercent=" + monthlyDiscountPercent +
-                ", quarterlyDiscountPercent=" + quarterlyDiscountPercent +
-                ", yearlyDiscountPercent=" + yearlyDiscountPercent +
-                ", isActive=" + isActive +
-                '}';
+    public Boolean getIsOfferActive() {
+        return isOfferActive;
+    }
+    
+    public void setIsOfferActive(Boolean isOfferActive) {
+        this.isOfferActive = isOfferActive;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
+

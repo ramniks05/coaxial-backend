@@ -115,4 +115,14 @@ public interface PricingConfigurationRepository extends JpaRepository<PricingCon
            "FROM PricingConfiguration pc WHERE pc.isActive = true " +
            "GROUP BY pc.entityType")
     List<Object[]> getPricingConfigurationSummary();
+    
+    /**
+     * Find all pricing configurations by course type and entity type
+     */
+    List<PricingConfiguration> findByCourseTypeIdAndEntityType(Long courseTypeId, String entityType);
+    
+    /**
+     * Find all active pricing configurations by course type and entity type
+     */
+    List<PricingConfiguration> findByCourseTypeIdAndEntityTypeAndIsActiveTrue(Long courseTypeId, String entityType);
 }
