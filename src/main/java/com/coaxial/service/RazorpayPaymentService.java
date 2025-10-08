@@ -18,7 +18,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -31,6 +30,9 @@ public class RazorpayPaymentService {
 
     @Value("${razorpay.key.secret:}")
     private String razorpayKeySecret;
+
+    @Value("${razorpay.webhook.secret:}")
+    private String razorpayWebhookSecret;
 
     @Autowired
     private StudentSubscriptionRepository subscriptionRepository;
@@ -82,8 +84,31 @@ public class RazorpayPaymentService {
             orderDTO.setCurrency(order.get("currency").toString());
             orderDTO.setReceipt(order.get("receipt").toString());
             orderDTO.setStatus(order.get("status").toString());
-            orderDTO.setAttempts(Long.valueOf(order.get("attempts").toString()));
-            orderDTO.setCreated_at(Long.valueOf(order.get("created_at").toString()));
+            
+            // Safely parse attempts - may not always be present or numeric
+            try {
+                if (order.has("attempts")) {
+                    orderDTO.setAttempts(Long.valueOf(order.get("attempts").toString()));
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse attempts as Long: {}", order.has("attempts") ? order.get("attempts").toString() : "null");
+                orderDTO.setAttempts(0L);
+            }
+            
+            // Safely parse created_at - may be timestamp or date string
+            try {
+                if (order.has("created_at")) {
+                    Object createdAtObj = order.get("created_at");
+                    if (createdAtObj instanceof Number) {
+                        orderDTO.setCreated_at(((Number) createdAtObj).longValue());
+                    } else {
+                        orderDTO.setCreated_at(Long.valueOf(createdAtObj.toString()));
+                    }
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse created_at as Long: {}", order.has("created_at") ? order.get("created_at").toString() : "null");
+                orderDTO.setCreated_at(System.currentTimeMillis() / 1000); // Use current timestamp as fallback
+            }
             
             if (order.has("notes")) {
                 orderDTO.setNotes(order.get("notes").toString());
@@ -138,7 +163,7 @@ public class RazorpayPaymentService {
     }
 
     /**
-     * Generate Razorpay signature
+     * Generate Razorpay signature (Hex encoding as per Razorpay standard)
      */
     private String generateSignature(String data) {
         try {
@@ -146,11 +171,22 @@ public class RazorpayPaymentService {
             SecretKeySpec secretKeySpec = new SecretKeySpec(razorpayKeySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hash);
+            return bytesToHex(hash); // Use hex encoding instead of Base64
         } catch (Exception e) {
             logger.error("Error generating Razorpay signature", e);
             throw new RuntimeException("Failed to generate signature", e);
         }
+    }
+
+    /**
+     * Convert bytes to hexadecimal string
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
     }
 
     /**
@@ -175,8 +211,31 @@ public class RazorpayPaymentService {
             orderDTO.setCurrency(order.get("currency").toString());
             orderDTO.setReceipt(order.get("receipt").toString());
             orderDTO.setStatus(order.get("status").toString());
-            orderDTO.setAttempts(Long.valueOf(order.get("attempts").toString()));
-            orderDTO.setCreated_at(Long.valueOf(order.get("created_at").toString()));
+            
+            // Safely parse attempts
+            try {
+                if (order.has("attempts")) {
+                    orderDTO.setAttempts(Long.valueOf(order.get("attempts").toString()));
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse attempts as Long: {}", order.has("attempts") ? order.get("attempts").toString() : "null");
+                orderDTO.setAttempts(0L);
+            }
+            
+            // Safely parse created_at
+            try {
+                if (order.has("created_at")) {
+                    Object createdAtObj = order.get("created_at");
+                    if (createdAtObj instanceof Number) {
+                        orderDTO.setCreated_at(((Number) createdAtObj).longValue());
+                    } else {
+                        orderDTO.setCreated_at(Long.valueOf(createdAtObj.toString()));
+                    }
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse created_at as Long: {}", order.has("created_at") ? order.get("created_at").toString() : "null");
+                orderDTO.setCreated_at(System.currentTimeMillis() / 1000);
+            }
             
             if (order.has("notes")) {
                 orderDTO.setNotes(order.get("notes").toString());
@@ -223,5 +282,105 @@ public class RazorpayPaymentService {
      */
     public String getRazorpayKeyId() {
         return razorpayKeyId;
+    }
+
+    /**
+     * Verify webhook signature from Razorpay
+     */
+    public boolean verifyWebhookSignature(String payload, String signature) {
+        try {
+            if (razorpayWebhookSecret == null || razorpayWebhookSecret.isEmpty()) {
+                logger.warn("Webhook secret not configured");
+                return false;
+            }
+
+            String generatedSignature = generateWebhookSignature(payload);
+            boolean isValid = generatedSignature.equals(signature);
+            
+            if (!isValid) {
+                logger.warn("Webhook signature verification failed");
+            }
+            
+            return isValid;
+        } catch (Exception e) {
+            logger.error("Error verifying webhook signature", e);
+            return false;
+        }
+    }
+
+    /**
+     * Generate webhook signature
+     */
+    private String generateWebhookSignature(String payload) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(razorpayWebhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(hash);
+        } catch (Exception e) {
+            logger.error("Error generating webhook signature", e);
+            throw new RuntimeException("Failed to generate webhook signature", e);
+        }
+    }
+
+    /**
+     * Handle successful payment from webhook
+     */
+    public boolean handlePaymentSuccess(String razorpayOrderId, String razorpayPaymentId) {
+        try {
+            Optional<StudentSubscription> subscriptionOpt = subscriptionRepository.findByRazorpayOrderId(razorpayOrderId);
+            
+            if (subscriptionOpt.isPresent()) {
+                StudentSubscription subscription = subscriptionOpt.get();
+                
+                // Only update if not already paid
+                if (subscription.getPaymentStatus() != PaymentStatus.PAID) {
+                    subscription.setRazorpayPaymentId(razorpayPaymentId);
+                    subscription.setPaymentStatus(PaymentStatus.PAID);
+                    subscription.setPaymentDate(LocalDateTime.now());
+                    subscription.setIsActive(true);
+                    subscriptionRepository.save(subscription);
+                    
+                    logger.info("Payment success handled via webhook for order: {}", razorpayOrderId);
+                    return true;
+                }
+                
+                logger.info("Payment already processed for order: {}", razorpayOrderId);
+                return true;
+            } else {
+                logger.error("Subscription not found for order ID in webhook: {}", razorpayOrderId);
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("Error handling payment success for order: {}", razorpayOrderId, e);
+            return false;
+        }
+    }
+
+    /**
+     * Handle failed payment from webhook
+     */
+    public boolean handlePaymentFailed(String razorpayOrderId, String reason) {
+        try {
+            Optional<StudentSubscription> subscriptionOpt = subscriptionRepository.findByRazorpayOrderId(razorpayOrderId);
+            
+            if (subscriptionOpt.isPresent()) {
+                StudentSubscription subscription = subscriptionOpt.get();
+                subscription.setPaymentStatus(PaymentStatus.FAILED);
+                subscription.setIsActive(false);
+                subscription.setNotes("Payment failed: " + reason);
+                subscriptionRepository.save(subscription);
+                
+                logger.info("Payment failure handled via webhook for order: {} - Reason: {}", razorpayOrderId, reason);
+                return true;
+            } else {
+                logger.error("Subscription not found for order ID in webhook: {}", razorpayOrderId);
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("Error handling payment failure for order: {}", razorpayOrderId, e);
+            return false;
+        }
     }
 }

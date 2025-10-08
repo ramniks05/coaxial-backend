@@ -76,7 +76,8 @@ public class SecurityConfig {
                     "/api/auth/register",
                     "/api/auth/test",
                     "/api/auth/create-admin",
-                    "/api/public/**"
+                    "/api/public/**",
+                    "/api/webhooks/**"
                 ).permitAll()
                 
                 // Admin endpoints
