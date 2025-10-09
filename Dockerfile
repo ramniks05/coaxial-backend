@@ -1,5 +1,5 @@
 # Multi-stage build for production
-FROM maven:3.9.5-openjdk-17-slim AS build
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -13,15 +13,13 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Production stage
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre-alpine
 
 # Install necessary packages
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
-# Create app user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Create app user (Alpine uses addgroup and adduser)
+RUN addgroup -S appuser && adduser -S appuser -G appuser
 
 # Set working directory
 WORKDIR /app
