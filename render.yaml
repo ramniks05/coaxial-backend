@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: coaxial-backend
+    runtime: docker
+    repo: https://github.com/ramniks05/coaxial-backend
+    branch: master
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        value: jdbc:postgresql://dpg-d3jsavnfte5s73822hf0-a.oregon-postgres.render.com:5432/coaxial
+      - key: DB_USERNAME
+        value: coaxial
+      - key: DB_PASSWORD
+        value: XGOxywCzJ9q4Px2hCThRmwCjRAXzBymz
+      - key: JWT_SECRET
+        sync: false
+        # IMPORTANT: Generate a secure base64 encoded secret (256+ bits) and set this in Render dashboard
+      - key: JWT_EXPIRATION
+        value: 86400000
+      - key: JWT_REFRESH_EXPIRATION
+        value: 604800000
+      - key: RAZORPAY_KEY_ID
+        sync: false
+        # Set your Razorpay key ID in Render dashboard
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+        # Set your Razorpay key secret in Render dashboard
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+        # Set your Razorpay webhook secret in Render dashboard
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+        # Set your frontend URL (e.g., https://yourfrontend.com) in Render dashboard
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+        # Optional: Set Gmail address for password reset emails in Render dashboard
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+        # Optional: Set Gmail app password in Render dashboard
+      - key: LOG_FILE_PATH
+        value: /var/log/coaxial/application.log
+    autoDeploy: true
+
