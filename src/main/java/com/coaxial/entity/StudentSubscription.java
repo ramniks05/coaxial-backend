@@ -19,8 +19,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import com.coaxial.enums.PlanType;
 import com.coaxial.enums.SubscriptionLevel;
 import com.coaxial.enums.PaymentStatus;
+import com.coaxial.enums.SubscriptionStatus;
 
 @Entity
 @Table(name = "student_subscriptions")
@@ -69,6 +71,10 @@ public class StudentSubscription {
     @Column(name = "duration_days")
     private Integer durationDays;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_type")
+    private PlanType planType;
+
     // Razorpay payment fields
     @Column(name = "razorpay_order_id")
     private String razorpayOrderId;
@@ -91,6 +97,10 @@ public class StudentSubscription {
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private SubscriptionStatus status;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -210,6 +220,14 @@ public class StudentSubscription {
         }
     }
 
+    public PlanType getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(PlanType planType) {
+        this.planType = planType;
+    }
+
     public String getRazorpayOrderId() {
         return razorpayOrderId;
     }
@@ -266,6 +284,14 @@ public class StudentSubscription {
         this.notes = notes;
     }
 
+    public SubscriptionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SubscriptionStatus status) {
+        this.status = status;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -296,5 +322,37 @@ public class StudentSubscription {
         LocalDateTime now = LocalDateTime.now();
         if (now.isAfter(endDate)) return 0;
         return java.time.Duration.between(now, endDate).toDays();
+    }
+
+    /**
+     * Compute the current subscription status based on payment status, active flag, and expiry date
+     */
+    public SubscriptionStatus computeStatus() {
+        if (paymentStatus == PaymentStatus.CANCELLED) {
+            return SubscriptionStatus.CANCELLED;
+        }
+        if (paymentStatus != PaymentStatus.PAID) {
+            return SubscriptionStatus.PENDING;
+        }
+        if (isExpired()) {
+            return SubscriptionStatus.EXPIRED;
+        }
+        if (isActive) {
+            return SubscriptionStatus.ACTIVE;
+        }
+        return SubscriptionStatus.CANCELLED;
+    }
+
+    /**
+     * Get the expiry date calculated from start date and duration
+     */
+    public LocalDateTime getExpiryDate() {
+        if (endDate != null) {
+            return endDate;
+        }
+        if (startDate != null && durationDays != null) {
+            return startDate.plusDays(durationDays);
+        }
+        return null;
     }
 }

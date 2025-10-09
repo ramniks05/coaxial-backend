@@ -4,6 +4,7 @@ import com.coaxial.dto.PaymentCallbackDTO;
 import com.coaxial.dto.RazorpayOrderDTO;
 import com.coaxial.dto.SubscriptionRequestDTO;
 import com.coaxial.dto.SubscriptionResponseDTO;
+import com.coaxial.enums.SubscriptionStatus;
 import com.coaxial.service.RazorpayPaymentService;
 import com.coaxial.service.StudentSubscriptionService;
 import com.coaxial.service.UserService;
@@ -25,6 +26,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/student/subscriptions")
 @PreAuthorize("hasRole('STUDENT')")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"}, allowCredentials = "true")
 public class StudentSubscriptionController {
 
     private static final Logger logger = LoggerFactory.getLogger(StudentSubscriptionController.class);
@@ -41,7 +43,7 @@ public class StudentSubscriptionController {
     /**
      * Create a new subscription and initialize payment
      */
-    @PostMapping
+    @PostMapping(produces = "application/json")
     public ResponseEntity<?> createSubscription(@Valid @RequestBody SubscriptionRequestDTO requestDTO, 
                                                Authentication authentication) {
         try {
@@ -76,46 +78,116 @@ public class StudentSubscriptionController {
 
     /**
      * Verify payment and activate subscription
+     * Subscription is created during this verification, not before
      */
-    @PostMapping("/verify-payment")
+    @PostMapping(value = "/verify-payment", produces = "application/json", consumes = "application/json")
     public ResponseEntity<?> verifyPayment(@Valid @RequestBody PaymentCallbackDTO callbackDTO, 
                                           Authentication authentication) {
+        logger.info("=== Verify Payment Endpoint Called ===");
+        logger.info("Order ID: {}", callbackDTO.getRazorpay_order_id());
+        logger.info("Payment ID: {}", callbackDTO.getRazorpay_payment_id());
+        logger.info("Signature: {}", callbackDTO.getRazorpay_signature() != null ? "present" : "missing");
+        
         try {
+            logger.info("Calling subscriptionService.verifyPaymentAndActivate()");
+            
             boolean isValid = subscriptionService.verifyPaymentAndActivate(
                     callbackDTO.getRazorpay_order_id(),
                     callbackDTO.getRazorpay_payment_id(),
                     callbackDTO.getRazorpay_signature()
             );
 
+            logger.info("Payment verification completed. Result: {}", isValid);
+
             if (isValid) {
-                // Get updated subscription details
-                Optional<SubscriptionResponseDTO> subscription = subscriptionService.getSubscriptionById(callbackDTO.getSubscriptionId());
+                logger.info("Fetching subscription by razorpay order ID: {}", callbackDTO.getRazorpay_order_id());
+                
+                // Get newly created subscription by razorpay order ID
+                Optional<SubscriptionResponseDTO> subscriptionOpt = subscriptionService.getSubscriptionByRazorpayOrderId(
+                        callbackDTO.getRazorpay_order_id()
+                );
+                
+                if (subscriptionOpt.isPresent()) {
+                    SubscriptionResponseDTO subscription = subscriptionOpt.get();
+                    logger.info("Subscription found: ID {}, Status {}", subscription.getId(), subscription.getStatus());
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("message", "Payment verified successfully");
+                    response.put("subscription", subscription);
+                    
+                    logger.info("Sending success response for subscription ID: {}", subscription.getId());
+                    return ResponseEntity.ok(response);
+                    
+                } else {
+                    logger.error("Payment verified but subscription NOT found for order: {}", callbackDTO.getRazorpay_order_id());
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("message", "Payment verified but subscription not found");
+                    response.put("subscription", null);
+                    
+                    return ResponseEntity.ok(response);
+                }
+                
+            } else {
+                logger.warn("Payment verification returned false for order: {}", callbackDTO.getRazorpay_order_id());
                 
                 Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "Payment verified successfully");
-                response.put("subscription", subscription.orElse(null));
+                response.put("success", false);
+                response.put("error", "Payment verification failed");
                 
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "success", false,
-                        "error", "Payment verification failed"
-                ));
+                return ResponseEntity.badRequest().body(response);
             }
             
+        } catch (IllegalArgumentException e) {
+            logger.error("Validation error in verify payment for order {}: {}", callbackDTO.getRazorpay_order_id(), e.getMessage(), e);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            
+            return ResponseEntity.badRequest().body(response);
+            
         } catch (Exception e) {
-            logger.error("Error verifying payment", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Payment verification failed: " + e.getMessage()));
+            logger.error("=== EXCEPTION in verify payment ===", e);
+            logger.error("Order ID: {}", callbackDTO.getRazorpay_order_id());
+            logger.error("Exception type: {}", e.getClass().getName());
+            logger.error("Exception message: {}", e.getMessage());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", "Payment verification failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
     /**
-     * Get all subscriptions for current student
+     * Get all subscriptions for current student with optional status filter
+     * By default shows only latest subscription per entity to avoid duplicate cancelled subscriptions
+     * Use includeAll=true to see complete subscription history
+     */
+    @GetMapping("/my-subscriptions")
+    public ResponseEntity<List<SubscriptionResponseDTO>> getMySubscriptions(
+            @RequestParam(required = false) SubscriptionStatus status,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeAll,
+            Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            List<SubscriptionResponseDTO> subscriptions = subscriptionService.getMySubscriptions(studentId, status, includeAll);
+            return ResponseEntity.ok(subscriptions);
+        } catch (Exception e) {
+            logger.error("Error fetching student subscriptions", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get all subscriptions for current student (legacy endpoint, kept for backward compatibility)
      */
     @GetMapping
-    public ResponseEntity<List<SubscriptionResponseDTO>> getMySubscriptions(Authentication authentication) {
+    public ResponseEntity<List<SubscriptionResponseDTO>> getAllSubscriptions(Authentication authentication) {
         try {
             Long studentId = getCurrentStudentId(authentication);
             List<SubscriptionResponseDTO> subscriptions = subscriptionService.getStudentSubscriptions(studentId);
@@ -169,7 +241,7 @@ public class StudentSubscriptionController {
     /**
      * Cancel subscription
      */
-    @PostMapping("/{id}/cancel")
+    @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelSubscription(@PathVariable Long id, Authentication authentication) {
         try {
             Long studentId = getCurrentStudentId(authentication);
@@ -192,22 +264,29 @@ public class StudentSubscriptionController {
 
     /**
      * Check access to specific entity
+     * Returns full subscription object if access is granted
      */
     @GetMapping("/check-access")
-    public ResponseEntity<?> checkAccess(@RequestParam String subscriptionLevel,
+    public ResponseEntity<?> checkAccess(@RequestParam String entityType,
                                         @RequestParam Long entityId,
                                         Authentication authentication) {
         try {
             Long studentId = getCurrentStudentId(authentication);
             
-            com.coaxial.enums.SubscriptionLevel level = com.coaxial.enums.SubscriptionLevel.valueOf(subscriptionLevel.toUpperCase());
-            boolean hasAccess = subscriptionService.hasStudentAccess(studentId, level, entityId);
+            com.coaxial.enums.SubscriptionLevel level = com.coaxial.enums.SubscriptionLevel.valueOf(entityType.toUpperCase());
+            Optional<SubscriptionResponseDTO> subscriptionOpt = subscriptionService.getActiveSubscriptionForAccess(studentId, level, entityId);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("hasAccess", hasAccess);
-            response.put("studentId", studentId);
-            response.put("subscriptionLevel", level);
-            response.put("entityId", entityId);
+            
+            if (subscriptionOpt.isPresent()) {
+                SubscriptionResponseDTO subscription = subscriptionOpt.get();
+                response.put("hasAccess", true);
+                response.put("subscription", subscription);
+            } else {
+                response.put("hasAccess", false);
+                response.put("subscription", null);
+                response.put("message", "No active subscription found for this content");
+            }
             
             return ResponseEntity.ok(response);
             
@@ -218,6 +297,57 @@ public class StudentSubscriptionController {
             logger.error("Error checking access", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to check access"));
+        }
+    }
+
+    /**
+     * Get subscriptions expiring soon (default 7 days)
+     */
+    @GetMapping("/expiring-soon")
+    public ResponseEntity<List<SubscriptionResponseDTO>> getExpiringSoon(
+            @RequestParam(defaultValue = "7") int days,
+            Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            List<SubscriptionResponseDTO> subscriptions = subscriptionService.getSubscriptionsExpiringSoon(studentId, days);
+            return ResponseEntity.ok(subscriptions);
+        } catch (Exception e) {
+            logger.error("Error fetching expiring subscriptions", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Renew an existing subscription
+     */
+    @PostMapping(value = "/{id}/renew", produces = "application/json")
+    public ResponseEntity<?> renewSubscription(@PathVariable Long id, Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            
+            // Check if Razorpay is configured
+            if (!razorpayService.isRazorpayConfigured()) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("error", "Payment service is not configured"));
+            }
+
+            RazorpayOrderDTO orderDTO = subscriptionService.renewSubscription(id, studentId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("order", orderDTO);
+            response.put("keyId", razorpayService.getRazorpayKeyId());
+            response.put("message", "Renewal order created successfully");
+            response.put("originalSubscriptionId", id);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid renewal request: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error renewing subscription: {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to renew subscription: " + e.getMessage()));
         }
     }
 

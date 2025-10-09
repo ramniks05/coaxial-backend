@@ -1,5 +1,6 @@
 package com.coaxial.dto;
 
+import com.coaxial.enums.PlanType;
 import com.coaxial.enums.SubscriptionLevel;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -19,6 +20,9 @@ public class SubscriptionRequestDTO {
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     private BigDecimal amount;
+
+    @NotNull(message = "Plan type is required")
+    private PlanType planType;
 
     @Min(value = 1, message = "Duration must be at least 1 day")
     private Integer durationDays;
@@ -59,6 +63,14 @@ public class SubscriptionRequestDTO {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public PlanType getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(PlanType planType) {
+        this.planType = planType;
     }
 
     public Integer getDurationDays() {
