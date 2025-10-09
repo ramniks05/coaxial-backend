@@ -1,7 +1,6 @@
 package com.coaxial.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public class PaymentCallbackDTO {
 
@@ -14,18 +13,17 @@ public class PaymentCallbackDTO {
     @NotBlank(message = "Razorpay signature is required")
     private String razorpay_signature;
 
-    @NotNull(message = "Subscription ID is required")
-    private Long subscriptionId;
+    // Note: subscriptionId removed - subscription is created AFTER payment verification
+    // Backend will find the payment by razorpay_order_id and create subscription
 
     // Constructors
     public PaymentCallbackDTO() {
     }
 
-    public PaymentCallbackDTO(String razorpay_order_id, String razorpay_payment_id, String razorpay_signature, Long subscriptionId) {
+    public PaymentCallbackDTO(String razorpay_order_id, String razorpay_payment_id, String razorpay_signature) {
         this.razorpay_order_id = razorpay_order_id;
         this.razorpay_payment_id = razorpay_payment_id;
         this.razorpay_signature = razorpay_signature;
-        this.subscriptionId = subscriptionId;
     }
 
     // Getters and Setters
@@ -51,13 +49,5 @@ public class PaymentCallbackDTO {
 
     public void setRazorpay_signature(String razorpay_signature) {
         this.razorpay_signature = razorpay_signature;
-    }
-
-    public Long getSubscriptionId() {
-        return subscriptionId;
-    }
-
-    public void setSubscriptionId(Long subscriptionId) {
-        this.subscriptionId = subscriptionId;
     }
 }

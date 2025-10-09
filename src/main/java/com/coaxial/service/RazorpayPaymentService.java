@@ -3,6 +3,7 @@ package com.coaxial.service;
 import com.coaxial.dto.RazorpayOrderDTO;
 import com.coaxial.entity.StudentSubscription;
 import com.coaxial.enums.PaymentStatus;
+import com.coaxial.enums.SubscriptionStatus;
 import com.coaxial.repository.StudentSubscriptionRepository;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
@@ -37,6 +38,9 @@ public class RazorpayPaymentService {
     @Autowired
     private StudentSubscriptionRepository subscriptionRepository;
 
+    @Autowired
+    private PaymentService paymentService;
+
     private RazorpayClient razorpayClient;
 
     public void initRazorpayClient() throws RazorpayException {
@@ -46,8 +50,94 @@ public class RazorpayPaymentService {
     }
 
     /**
-     * Create a Razorpay order for subscription payment
+     * Create a Razorpay order for Payment entity
      */
+    public RazorpayOrderDTO createOrderForPayment(com.coaxial.entity.Payment payment) throws RazorpayException {
+        try {
+            initRazorpayClient();
+            
+            if (razorpayClient == null) {
+                throw new RazorpayException("Razorpay client not initialized. Please check configuration.");
+            }
+
+            JSONObject orderRequest = new JSONObject();
+            orderRequest.put("amount", payment.getAmount().multiply(java.math.BigDecimal.valueOf(100)).longValue()); // Convert to paise
+            orderRequest.put("currency", payment.getCurrency());
+            orderRequest.put("receipt", "pay_" + payment.getId() + "_" + System.currentTimeMillis());
+            orderRequest.put("notes", new JSONObject()
+                .put("payment_id", payment.getId().toString())
+                .put("payment_reference", payment.getPaymentReference())
+                .put("student_id", payment.getStudent().getId().toString())
+                .put("entity_name", payment.getEntityName())
+                .put("payment_type", payment.getPaymentType().name())
+            );
+
+            Order order = razorpayClient.orders.create(orderRequest);
+            
+            // Update payment with order ID
+            paymentService.updateWithRazorpayOrder(
+                payment.getId(),
+                order.get("id"),
+                order.get("receipt")
+            );
+
+            // Convert to DTO
+            RazorpayOrderDTO orderDTO = new RazorpayOrderDTO();
+            orderDTO.setId(order.get("id").toString());
+            orderDTO.setEntity(order.get("entity").toString());
+            orderDTO.setAmount(Long.valueOf(order.get("amount").toString()));
+            orderDTO.setAmount_paid(order.get("amount_paid").toString());
+            orderDTO.setAmount_due(order.get("amount_due").toString());
+            orderDTO.setCurrency(order.get("currency").toString());
+            orderDTO.setReceipt(order.get("receipt").toString());
+            orderDTO.setStatus(order.get("status").toString());
+            
+            // Safely parse attempts
+            try {
+                if (order.has("attempts")) {
+                    orderDTO.setAttempts(Long.valueOf(order.get("attempts").toString()));
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse attempts as Long: {}", order.has("attempts") ? order.get("attempts").toString() : "null");
+                orderDTO.setAttempts(0L);
+            }
+            
+            // Safely parse created_at
+            try {
+                if (order.has("created_at")) {
+                    Object createdAtObj = order.get("created_at");
+                    if (createdAtObj instanceof Number) {
+                        orderDTO.setCreated_at(((Number) createdAtObj).longValue());
+                    } else {
+                        orderDTO.setCreated_at(Long.valueOf(createdAtObj.toString()));
+                    }
+                }
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse created_at as Long: {}", order.has("created_at") ? order.get("created_at").toString() : "null");
+                orderDTO.setCreated_at(System.currentTimeMillis() / 1000);
+            }
+            
+            if (order.has("notes")) {
+                orderDTO.setNotes(order.get("notes").toString());
+            }
+
+            logger.info("Razorpay order created successfully: {} for payment: {}", order.get("id"), payment.getId());
+            return orderDTO;
+
+        } catch (RazorpayException e) {
+            logger.error("Error creating Razorpay order for payment: {}", payment.getId(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error creating Razorpay order for payment: {}", payment.getId(), e);
+            throw new RazorpayException("Failed to create order: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Create a Razorpay order for subscription payment (DEPRECATED - use createOrderForPayment)
+     * Kept for backward compatibility
+     */
+    @Deprecated
     public RazorpayOrderDTO createOrder(StudentSubscription subscription) throws RazorpayException {
         try {
             initRazorpayClient();
@@ -127,8 +217,24 @@ public class RazorpayPaymentService {
     }
 
     /**
-     * Verify payment signature and update subscription
+     * Verify payment signature only (without creating subscription)
+     * Used by new payment flow
      */
+    public boolean verifyPaymentSignature(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
+        try {
+            String generatedSignature = generateSignature(razorpayOrderId + "|" + razorpayPaymentId);
+            return generatedSignature.equals(razorpaySignature);
+        } catch (Exception e) {
+            logger.error("Error verifying payment signature for order: {}", razorpayOrderId, e);
+            return false;
+        }
+    }
+
+    /**
+     * Verify payment signature and update subscription (DEPRECATED - use verifyPaymentSignature)
+     * Kept for backward compatibility
+     */
+    @Deprecated
     public boolean verifyPayment(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
         try {
             String generatedSignature = generateSignature(razorpayOrderId + "|" + razorpayPaymentId);
@@ -144,6 +250,7 @@ public class RazorpayPaymentService {
                     subscription.setPaymentStatus(PaymentStatus.PAID);
                     subscription.setPaymentDate(LocalDateTime.now());
                     subscription.setIsActive(true);
+                    subscription.setStatus(SubscriptionStatus.ACTIVE);
                     subscriptionRepository.save(subscription);
                     
                     logger.info("Payment verified and subscription activated for order: {}", razorpayOrderId);
@@ -257,6 +364,7 @@ public class RazorpayPaymentService {
             if (subscriptionOpt.isPresent()) {
                 StudentSubscription subscription = subscriptionOpt.get();
                 subscription.setPaymentStatus(PaymentStatus.CANCELLED);
+                subscription.setStatus(SubscriptionStatus.CANCELLED);
                 subscription.setIsActive(false);
                 subscriptionRepository.save(subscription);
                 
@@ -340,6 +448,7 @@ public class RazorpayPaymentService {
                     subscription.setPaymentStatus(PaymentStatus.PAID);
                     subscription.setPaymentDate(LocalDateTime.now());
                     subscription.setIsActive(true);
+                    subscription.setStatus(SubscriptionStatus.ACTIVE);
                     subscriptionRepository.save(subscription);
                     
                     logger.info("Payment success handled via webhook for order: {}", razorpayOrderId);
@@ -368,6 +477,7 @@ public class RazorpayPaymentService {
             if (subscriptionOpt.isPresent()) {
                 StudentSubscription subscription = subscriptionOpt.get();
                 subscription.setPaymentStatus(PaymentStatus.FAILED);
+                subscription.setStatus(SubscriptionStatus.CANCELLED);
                 subscription.setIsActive(false);
                 subscription.setNotes("Payment failed: " + reason);
                 subscriptionRepository.save(subscription);

@@ -1,7 +1,10 @@
 package com.coaxial.dto;
 
 import com.coaxial.enums.PaymentStatus;
+import com.coaxial.enums.PlanType;
 import com.coaxial.enums.SubscriptionLevel;
+import com.coaxial.enums.SubscriptionStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,17 +18,40 @@ public class SubscriptionResponseDTO {
     private SubscriptionLevel subscriptionLevel;
     private Long entityId;
     private String entityName;
+    private String courseTypeName;
+    private String courseName;
+    private SubscriptionStatus status;
     private BigDecimal amount;
     private String currency;
     private Boolean isActive;
+    
+    // Pricing information from PricingConfiguration
+    private BigDecimal monthlyPrice;
+    private BigDecimal quarterlyPrice;
+    private BigDecimal yearlyPrice;
+    
+    // Discount information
+    private BigDecimal discountPercentage;  // Discount percentage for current plan
+    private BigDecimal savingsAmount;       // Actual savings amount
+    
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+    private LocalDateTime expiryDate;
     private Integer durationDays;
+    private PlanType planType;
+    
+    @JsonProperty("razorpay_order_id")
     private String razorpayOrderId;
+    
+    @JsonProperty("razorpay_payment_id")
     private String razorpayPaymentId;
+    
     private PaymentStatus paymentStatus;
     private LocalDateTime paymentDate;
+    
+    @JsonProperty("razorpay_receipt")
     private String razorpayReceipt;
+    
     private String notes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -93,6 +119,30 @@ public class SubscriptionResponseDTO {
         this.entityName = entityName;
     }
 
+    public String getCourseTypeName() {
+        return courseTypeName;
+    }
+
+    public void setCourseTypeName(String courseTypeName) {
+        this.courseTypeName = courseTypeName;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public SubscriptionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SubscriptionStatus status) {
+        this.status = status;
+    }
+
     public BigDecimal getAmount() {
         return amount;
     }
@@ -117,6 +167,46 @@ public class SubscriptionResponseDTO {
         this.isActive = isActive;
     }
 
+    public BigDecimal getMonthlyPrice() {
+        return monthlyPrice;
+    }
+
+    public void setMonthlyPrice(BigDecimal monthlyPrice) {
+        this.monthlyPrice = monthlyPrice;
+    }
+
+    public BigDecimal getQuarterlyPrice() {
+        return quarterlyPrice;
+    }
+
+    public void setQuarterlyPrice(BigDecimal quarterlyPrice) {
+        this.quarterlyPrice = quarterlyPrice;
+    }
+
+    public BigDecimal getYearlyPrice() {
+        return yearlyPrice;
+    }
+
+    public void setYearlyPrice(BigDecimal yearlyPrice) {
+        this.yearlyPrice = yearlyPrice;
+    }
+
+    public BigDecimal getDiscountPercentage() {
+        return discountPercentage;
+    }
+
+    public void setDiscountPercentage(BigDecimal discountPercentage) {
+        this.discountPercentage = discountPercentage;
+    }
+
+    public BigDecimal getSavingsAmount() {
+        return savingsAmount;
+    }
+
+    public void setSavingsAmount(BigDecimal savingsAmount) {
+        this.savingsAmount = savingsAmount;
+    }
+
     public LocalDateTime getStartDate() {
         return startDate;
     }
@@ -133,12 +223,28 @@ public class SubscriptionResponseDTO {
         this.endDate = endDate;
     }
 
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDateTime expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
     public Integer getDurationDays() {
         return durationDays;
     }
 
     public void setDurationDays(Integer durationDays) {
         this.durationDays = durationDays;
+    }
+
+    public PlanType getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(PlanType planType) {
+        this.planType = planType;
     }
 
     public String getRazorpayOrderId() {

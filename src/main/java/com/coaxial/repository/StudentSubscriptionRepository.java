@@ -4,6 +4,7 @@ import com.coaxial.entity.StudentSubscription;
 import com.coaxial.entity.User;
 import com.coaxial.enums.PaymentStatus;
 import com.coaxial.enums.SubscriptionLevel;
+import com.coaxial.enums.SubscriptionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -81,4 +82,43 @@ public interface StudentSubscriptionRepository extends JpaRepository<StudentSubs
                                    @Param("level") SubscriptionLevel level, 
                                    @Param("entityId") Long entityId, 
                                    @Param("now") LocalDateTime now);
+
+    // Find subscriptions by student ID and status
+    @Query("SELECT s FROM StudentSubscription s WHERE s.student.id = :studentId AND s.status = :status ORDER BY s.createdAt DESC")
+    List<StudentSubscription> findByStudentIdAndStatus(@Param("studentId") Long studentId, 
+                                                       @Param("status") SubscriptionStatus status);
+
+    // Find all subscriptions by student ID (for my-subscriptions endpoint)
+    @Query("SELECT s FROM StudentSubscription s WHERE s.student.id = :studentId ORDER BY s.createdAt DESC")
+    List<StudentSubscription> findByStudentId(@Param("studentId") Long studentId);
+
+    // Find subscriptions by status
+    List<StudentSubscription> findByStatusOrderByCreatedAtDesc(SubscriptionStatus status);
+
+    // Get latest subscription for each unique entity (prevents duplicate cancelled subscriptions)
+    // Standard approach: GROUP BY entity, return MAX(id) - shows only most recent per entity
+    @Query("SELECT s FROM StudentSubscription s " +
+           "WHERE s.student.id = :studentId " +
+           "AND s.id IN (" +
+           "  SELECT MAX(s2.id) FROM StudentSubscription s2 " +
+           "  WHERE s2.student.id = :studentId " +
+           "  GROUP BY s2.subscriptionLevel, s2.entityId" +
+           ") " +
+           "ORDER BY s.createdAt DESC")
+    List<StudentSubscription> findLatestSubscriptionsPerEntity(@Param("studentId") Long studentId);
+
+    // Get latest subscription for each unique entity filtered by status
+    // Shows only most recent CANCELLED/EXPIRED per entity to avoid confusion
+    @Query("SELECT s FROM StudentSubscription s " +
+           "WHERE s.student.id = :studentId " +
+           "AND s.status = :status " +
+           "AND s.id IN (" +
+           "  SELECT MAX(s2.id) FROM StudentSubscription s2 " +
+           "  WHERE s2.student.id = :studentId " +
+           "  AND s2.status = :status " +
+           "  GROUP BY s2.subscriptionLevel, s2.entityId" +
+           ") " +
+           "ORDER BY s.createdAt DESC")
+    List<StudentSubscription> findLatestSubscriptionsPerEntityByStatus(@Param("studentId") Long studentId, 
+                                                                       @Param("status") SubscriptionStatus status);
 }
