@@ -7,6 +7,11 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.coaxial.enums.PaymentStatus;
+import com.coaxial.enums.PlanType;
+import com.coaxial.enums.SubscriptionLevel;
+import com.coaxial.enums.SubscriptionStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -19,10 +24,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import com.coaxial.enums.PlanType;
-import com.coaxial.enums.SubscriptionLevel;
-import com.coaxial.enums.PaymentStatus;
-import com.coaxial.enums.SubscriptionStatus;
 
 @Entity
 @Table(name = "student_subscriptions")
