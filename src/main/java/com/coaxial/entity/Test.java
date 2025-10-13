@@ -7,9 +7,14 @@ import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.coaxial.enums.TestCreationMode;
+import com.coaxial.enums.TestLevel;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -117,6 +122,47 @@ public class Test {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "master_exam_id")
     private MasterExam masterExam;
+    
+    // Dual-mode test system: EXAM_BASED vs CONTENT_BASED
+    @Enumerated(EnumType.STRING)
+    @Column(name = "test_creation_mode", length = 20)
+    private TestCreationMode testCreationMode = TestCreationMode.EXAM_BASED;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "test_level", length = 20)
+    private TestLevel testLevel;
+    
+    // Content hierarchy linkage (for CONTENT_BASED mode)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_type_id")
+    private CourseType courseType;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private ClassEntity classEntity;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id")
+    private Exam exam;
+    
+    @Column(name = "subject_linkage_id")
+    private Long subjectLinkageId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "module_id")
+    private Module module;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id")
+    private Chapter chapter;
     
     // Relationships
     @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -226,4 +272,35 @@ public class Test {
     
     public List<TestAttempt> getTestAttempts() { return testAttempts; }
     public void setTestAttempts(List<TestAttempt> testAttempts) { this.testAttempts = testAttempts; }
+    
+    // Dual-mode system getters and setters
+    public TestCreationMode getTestCreationMode() { return testCreationMode; }
+    public void setTestCreationMode(TestCreationMode testCreationMode) { this.testCreationMode = testCreationMode; }
+    
+    public TestLevel getTestLevel() { return testLevel; }
+    public void setTestLevel(TestLevel testLevel) { this.testLevel = testLevel; }
+    
+    public CourseType getCourseType() { return courseType; }
+    public void setCourseType(CourseType courseType) { this.courseType = courseType; }
+    
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
+    
+    public ClassEntity getClassEntity() { return classEntity; }
+    public void setClassEntity(ClassEntity classEntity) { this.classEntity = classEntity; }
+    
+    public Exam getExam() { return exam; }
+    public void setExam(Exam exam) { this.exam = exam; }
+    
+    public Long getSubjectLinkageId() { return subjectLinkageId; }
+    public void setSubjectLinkageId(Long subjectLinkageId) { this.subjectLinkageId = subjectLinkageId; }
+    
+    public Topic getTopic() { return topic; }
+    public void setTopic(Topic topic) { this.topic = topic; }
+    
+    public Module getModule() { return module; }
+    public void setModule(Module module) { this.module = module; }
+    
+    public Chapter getChapter() { return chapter; }
+    public void setChapter(Chapter chapter) { this.chapter = chapter; }
 }

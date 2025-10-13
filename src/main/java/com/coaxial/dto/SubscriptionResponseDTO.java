@@ -1,13 +1,13 @@
 package com.coaxial.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import com.coaxial.enums.PaymentStatus;
 import com.coaxial.enums.PlanType;
 import com.coaxial.enums.SubscriptionLevel;
 import com.coaxial.enums.SubscriptionStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 public class SubscriptionResponseDTO {
 
@@ -18,6 +18,7 @@ public class SubscriptionResponseDTO {
     private SubscriptionLevel subscriptionLevel;
     private Long entityId;
     private String entityName;
+    private Long courseTypeId;
     private String courseTypeName;
     private String courseName;
     private SubscriptionStatus status;
@@ -117,6 +118,14 @@ public class SubscriptionResponseDTO {
 
     public void setEntityName(String entityName) {
         this.entityName = entityName;
+    }
+
+    public Long getCourseTypeId() {
+        return courseTypeId;
+    }
+
+    public void setCourseTypeId(Long courseTypeId) {
+        this.courseTypeId = courseTypeId;
     }
 
     public String getCourseTypeName() {

@@ -1,5 +1,27 @@
 package com.coaxial.controller;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.coaxial.dto.PaymentCallbackDTO;
 import com.coaxial.dto.RazorpayOrderDTO;
 import com.coaxial.dto.SubscriptionRequestDTO;
@@ -8,25 +30,20 @@ import com.coaxial.enums.SubscriptionStatus;
 import com.coaxial.service.RazorpayPaymentService;
 import com.coaxial.service.StudentSubscriptionService;
 import com.coaxial.service.UserService;
-import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/student/subscriptions")
 @PreAuthorize("hasRole('STUDENT')")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"}, allowCredentials = "true")
+@Tag(name = "Student Subscriptions", description = "APIs for students to manage their subscriptions")
 public class StudentSubscriptionController {
 
     private static final Logger logger = LoggerFactory.getLogger(StudentSubscriptionController.class);
@@ -168,9 +185,26 @@ public class StudentSubscriptionController {
      * By default shows only latest subscription per entity to avoid duplicate cancelled subscriptions
      * Use includeAll=true to see complete subscription history
      */
+    @Operation(
+        summary = "Get student subscriptions with filters",
+        description = "Retrieve subscriptions for the authenticated student. By default returns only the latest subscription per entity. Use includeAll=true for complete history."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved subscriptions"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/my-subscriptions")
     public ResponseEntity<List<SubscriptionResponseDTO>> getMySubscriptions(
+            @Parameter(
+                description = "Filter by subscription status. Valid values: PENDING, ACTIVE, EXPIRED, CANCELLED",
+                schema = @Schema(implementation = SubscriptionStatus.class),
+                example = "ACTIVE"
+            )
             @RequestParam(required = false) SubscriptionStatus status,
+            @Parameter(
+                description = "Include all subscription history (true) or only latest per entity (false)",
+                example = "false"
+            )
             @RequestParam(required = false, defaultValue = "false") Boolean includeAll,
             Authentication authentication) {
         try {
@@ -201,6 +235,14 @@ public class StudentSubscriptionController {
     /**
      * Get active subscriptions for current student
      */
+    @Operation(
+        summary = "Get all active subscriptions",
+        description = "Retrieve all active subscriptions for the authenticated student"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved active subscriptions"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/active")
     public ResponseEntity<List<SubscriptionResponseDTO>> getMyActiveSubscriptions(Authentication authentication) {
         try {
@@ -266,10 +308,28 @@ public class StudentSubscriptionController {
      * Check access to specific entity
      * Returns full subscription object if access is granted
      */
+    @Operation(
+        summary = "Check access to content",
+        description = "Verify if the student has an active subscription for the specified content"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Access check completed"),
+        @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/check-access")
-    public ResponseEntity<?> checkAccess(@RequestParam String entityType,
-                                        @RequestParam Long entityId,
-                                        Authentication authentication) {
+    public ResponseEntity<?> checkAccess(
+            @Parameter(
+                description = "Type of entity/content. Valid values: MASTER_COURSE, MASTER_SUBJECT, MASTER_CHAPTER",
+                example = "MASTER_COURSE"
+            )
+            @RequestParam String entityType,
+            @Parameter(
+                description = "ID of the entity/content",
+                example = "1"
+            )
+            @RequestParam Long entityId,
+            Authentication authentication) {
         try {
             Long studentId = getCurrentStudentId(authentication);
             

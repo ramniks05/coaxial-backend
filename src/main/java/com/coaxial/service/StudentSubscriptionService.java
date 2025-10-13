@@ -1,5 +1,18 @@
 package com.coaxial.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.coaxial.dto.RazorpayOrderDTO;
 import com.coaxial.dto.SubscriptionRequestDTO;
 import com.coaxial.dto.SubscriptionResponseDTO;
@@ -17,18 +30,6 @@ import com.coaxial.repository.ExamRepository;
 import com.coaxial.repository.PricingConfigurationRepository;
 import com.coaxial.repository.StudentSubscriptionRepository;
 import com.coaxial.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -504,13 +505,15 @@ public class StudentSubscriptionService {
         dto.setEntityId(subscription.getEntityId());
         dto.setEntityName(subscription.getEntityName());
         
-        // Fetch and set courseTypeName and courseName
+        // Fetch and set courseTypeId, courseTypeName and courseName
         try {
-            String[] courseDetails = getCourseDetails(subscription.getSubscriptionLevel(), subscription.getEntityId());
-            dto.setCourseTypeName(courseDetails[0]);
-            dto.setCourseName(courseDetails[1]);
+            Object[] courseDetails = getCourseDetailsWithId(subscription.getSubscriptionLevel(), subscription.getEntityId());
+            dto.setCourseTypeId((Long) courseDetails[0]);
+            dto.setCourseTypeName((String) courseDetails[1]);
+            dto.setCourseName((String) courseDetails[2]);
         } catch (Exception e) {
             logger.warn("Failed to fetch course details for subscription {}: {}", subscription.getId(), e.getMessage());
+            dto.setCourseTypeId(null);
             dto.setCourseTypeName(null);
             dto.setCourseName(null);
         }
@@ -573,14 +576,15 @@ public class StudentSubscriptionService {
     }
 
     /**
-     * Get course details (courseTypeName and courseName) based on subscription level and entity ID
-     * Returns [courseTypeName, courseName]
+     * Get course details with ID (courseTypeId, courseTypeName and courseName) based on subscription level and entity ID
+     * Returns [courseTypeId, courseTypeName, courseName]
      * Handles lazy loading gracefully to prevent LazyInitializationException
      */
-    private String[] getCourseDetails(SubscriptionLevel level, Long entityId) {
-        String[] details = new String[2];
-        details[0] = null;  // courseTypeName
-        details[1] = null;  // courseName
+    private Object[] getCourseDetailsWithId(SubscriptionLevel level, Long entityId) {
+        Object[] details = new Object[3];
+        details[0] = null;  // courseTypeId
+        details[1] = null;  // courseTypeName
+        details[2] = null;  // courseName
         
         try {
             switch (level) {
@@ -590,10 +594,11 @@ public class StudentSubscriptionService {
                         try {
                             Course course = classEntity.getCourse();
                             if (course != null) {
-                                details[1] = course.getName();
+                                details[2] = course.getName();  // courseName
                                 try {
                                     if (course.getCourseType() != null) {
-                                        details[0] = course.getCourseType().getName();
+                                        details[0] = course.getCourseType().getId();  // courseTypeId
+                                        details[1] = course.getCourseType().getName();  // courseTypeName
                                     }
                                 } catch (Exception e) {
                                     logger.debug("Could not fetch courseType for class {}: {}", entityId, e.getMessage());
@@ -611,10 +616,11 @@ public class StudentSubscriptionService {
                         try {
                             Course course = exam.getCourse();
                             if (course != null) {
-                                details[1] = course.getName();
+                                details[2] = course.getName();  // courseName
                                 try {
                                     if (course.getCourseType() != null) {
-                                        details[0] = course.getCourseType().getName();
+                                        details[0] = course.getCourseType().getId();  // courseTypeId
+                                        details[1] = course.getCourseType().getName();  // courseTypeName
                                     }
                                 } catch (Exception e) {
                                     logger.debug("Could not fetch courseType for exam {}: {}", entityId, e.getMessage());
@@ -629,10 +635,11 @@ public class StudentSubscriptionService {
                 case COURSE:
                     Course course = courseRepository.findById(entityId).orElse(null);
                     if (course != null) {
-                        details[1] = course.getName();
+                        details[2] = course.getName();  // courseName
                         try {
                             if (course.getCourseType() != null) {
-                                details[0] = course.getCourseType().getName();
+                                details[0] = course.getCourseType().getId();  // courseTypeId
+                                details[1] = course.getCourseType().getName();  // courseTypeName
                             }
                         } catch (Exception e) {
                             logger.debug("Could not fetch courseType for course {}: {}", entityId, e.getMessage());

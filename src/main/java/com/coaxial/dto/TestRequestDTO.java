@@ -3,6 +3,9 @@ package com.coaxial.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.coaxial.enums.TestCreationMode;
+import com.coaxial.enums.TestLevel;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,11 +40,22 @@ public class TestRequestDTO {
 
     private LocalDate endDate;
 
-    @NotNull(message = "Master exam ID is required")
-    private Long masterExamId;
+    private Long masterExamId; // Optional - required only for EXAM_BASED mode
 
     // Optional: initial questions
     private List<com.coaxial.dto.TestQuestionRequestDTO> questions;
+    
+    // Dual-mode test system fields
+    private TestCreationMode testCreationMode = TestCreationMode.EXAM_BASED;
+    private TestLevel testLevel;
+    private Long courseTypeId;
+    private Long courseId;
+    private Long classId;
+    private Long examId;
+    private Long subjectLinkageId;
+    private Long topicId;
+    private Long moduleId;
+    private Long chapterId;
 
     // Extended configuration
     private String testType; // PRACTICE, MOCK, etc.
@@ -111,6 +125,37 @@ public class TestRequestDTO {
     public void setAllowSkip(Boolean allowSkip) { this.allowSkip = allowSkip; }
     public Integer getTimePerQuestion() { return timePerQuestion; }
     public void setTimePerQuestion(Integer timePerQuestion) { this.timePerQuestion = timePerQuestion; }
+    
+    // Dual-mode system getters and setters
+    public TestCreationMode getTestCreationMode() { return testCreationMode; }
+    public void setTestCreationMode(TestCreationMode testCreationMode) { this.testCreationMode = testCreationMode; }
+    
+    public TestLevel getTestLevel() { return testLevel; }
+    public void setTestLevel(TestLevel testLevel) { this.testLevel = testLevel; }
+    
+    public Long getCourseTypeId() { return courseTypeId; }
+    public void setCourseTypeId(Long courseTypeId) { this.courseTypeId = courseTypeId; }
+    
+    public Long getCourseId() { return courseId; }
+    public void setCourseId(Long courseId) { this.courseId = courseId; }
+    
+    public Long getClassId() { return classId; }
+    public void setClassId(Long classId) { this.classId = classId; }
+    
+    public Long getExamId() { return examId; }
+    public void setExamId(Long examId) { this.examId = examId; }
+    
+    public Long getSubjectLinkageId() { return subjectLinkageId; }
+    public void setSubjectLinkageId(Long subjectLinkageId) { this.subjectLinkageId = subjectLinkageId; }
+    
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
+    
+    public Long getModuleId() { return moduleId; }
+    public void setModuleId(Long moduleId) { this.moduleId = moduleId; }
+    
+    public Long getChapterId() { return chapterId; }
+    public void setChapterId(Long chapterId) { this.chapterId = chapterId; }
 }
 
 
