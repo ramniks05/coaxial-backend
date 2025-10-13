@@ -1,5 +1,6 @@
 package com.coaxial.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ import com.coaxial.entity.Question;
 import com.coaxial.entity.Test;
 import com.coaxial.entity.TestQuestion;
 import com.coaxial.entity.Topic;
+import com.coaxial.enums.SubscriptionLevel;
 import com.coaxial.enums.TestCreationMode;
 import com.coaxial.enums.TestLevel;
 import com.coaxial.exception.ValidationException;
@@ -232,6 +234,33 @@ public class TestService {
     }
 
     /**
+     * Get tests accessible to a specific student with optional filters for course/class/exam
+     */
+    @Transactional(readOnly = true)
+    public List<TestResponseDTO> getAccessibleTests(Long studentId, Long courseId, Long classId, Long examId) {
+        return testRepository.findByIsActiveTrue().stream()
+                .filter(test -> hasStudentAccessToTest(studentId, test))
+                .filter(test -> {
+                    // Apply course filter if provided
+                    if (courseId != null && test.getCourse() != null) {
+                        return courseId.equals(test.getCourse().getId());
+                    }
+                    // Apply class filter if provided
+                    if (classId != null && test.getClassEntity() != null) {
+                        return classId.equals(test.getClassEntity().getId());
+                    }
+                    // Apply exam filter if provided
+                    if (examId != null && test.getExam() != null) {
+                        return examId.equals(test.getExam().getId());
+                    }
+                    // If no filters provided, return all accessible tests
+                    return courseId == null && classId == null && examId == null;
+                })
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Get active tests only
      */
     @Transactional(readOnly = true)
@@ -274,20 +303,58 @@ public class TestService {
     }
 
     /**
-     * Check if student has access to a specific test entity
+     * Check if student has access to a specific test entity based on their active subscriptions.
+     * Tests created at any level (course, class, exam, subject, topic, module, chapter) are accessible
+     * if the student has a subscription for the parent class/exam/course.
      */
     private boolean hasStudentAccessToTest(Long studentId, Test test) {
-        // For now, allow access to all active tests
-        // This can be enhanced with specific subscription logic
-        return test.getIsActive() && test.getIsPublished();
+        // Check if test is active and published
+        if (!test.getIsActive() || !test.getIsPublished()) {
+            return false;
+        }
         
-        // Future enhancement: Check subscription based on test's linked entities
-        // if (test.getMasterExam() != null) {
-        //     return subscriptionRepository.hasStudentAccessToEntity(
-        //         studentId, SubscriptionLevel.EXAM, test.getMasterExam().getId(), 
-        //         java.time.LocalDateTime.now());
-        // }
-        // Add more subscription checks based on test relationships
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Check CONTENT_BASED tests (linked to course hierarchy)
+        if (test.getTestCreationMode() == TestCreationMode.CONTENT_BASED) {
+            // Check Course-level subscription (highest priority - grants access to all tests in course)
+            if (test.getCourse() != null) {
+                if (subscriptionRepository.hasStudentAccessToEntity(
+                    studentId, SubscriptionLevel.COURSE, test.getCourse().getId(), now)) {
+                    return true;
+                }
+            }
+            
+            // Check Class-level subscription (for academic courses)
+            if (test.getClassEntity() != null) {
+                if (subscriptionRepository.hasStudentAccessToEntity(
+                    studentId, SubscriptionLevel.CLASS, test.getClassEntity().getId(), now)) {
+                    return true;
+                }
+            }
+            
+            // Check Exam-level subscription (for competitive courses)
+            if (test.getExam() != null) {
+                if (subscriptionRepository.hasStudentAccessToEntity(
+                    studentId, SubscriptionLevel.EXAM, test.getExam().getId(), now)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check EXAM_BASED tests (linked to MasterExam - general exam practice)
+        if (test.getTestCreationMode() == TestCreationMode.EXAM_BASED) {
+            if (test.getMasterExam() != null) {
+                // For master exams, check if student has EXAM subscription
+                if (subscriptionRepository.hasStudentAccessToEntity(
+                    studentId, SubscriptionLevel.EXAM, test.getMasterExam().getId(), now)) {
+                    return true;
+                }
+            }
+        }
+        
+        // No valid subscription found - deny access
+        return false;
     }
 
     @Transactional(readOnly = true)

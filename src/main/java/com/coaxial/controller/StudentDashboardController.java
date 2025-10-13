@@ -63,13 +63,26 @@ public class StudentDashboardController {
     }
 
     /**
-     * Get accessible tests for the student
+     * Get accessible tests for the student with optional filters
      */
     @GetMapping("/tests")
-    public ResponseEntity<?> getAccessibleTests(Authentication authentication) {
+    public ResponseEntity<?> getAccessibleTests(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Long examId,
+            Authentication authentication) {
         try {
             Long studentId = getCurrentStudentId(authentication);
-            List<TestResponseDTO> tests = dashboardService.getAccessibleTests(studentId);
+            List<TestResponseDTO> tests;
+            
+            // If any filter is provided, use filtered method
+            if (courseId != null || classId != null || examId != null) {
+                tests = dashboardService.getAccessibleTests(studentId, courseId, classId, examId);
+            } else {
+                // Otherwise, get all accessible tests
+                tests = dashboardService.getAccessibleTests(studentId);
+            }
+            
             return ResponseEntity.ok(tests);
         } catch (Exception e) {
             logger.error("Error fetching accessible tests", e);

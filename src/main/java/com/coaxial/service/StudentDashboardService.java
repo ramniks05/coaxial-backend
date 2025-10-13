@@ -111,6 +111,25 @@ public class StudentDashboardService {
     }
 
     /**
+     * Get accessible tests for a student with optional filters for specific class/exam/course
+     */
+    public List<TestResponseDTO> getAccessibleTests(Long studentId, Long courseId, Long classId, Long examId) {
+        try {
+            // Use TestService's subscription-aware method with filters
+            List<com.coaxial.dto.TestResponseDTO> accessibleTests = testService.getAccessibleTests(studentId, courseId, classId, examId);
+            
+            // Convert to dashboard DTO format
+            return accessibleTests.stream()
+                    .map(this::convertFromTestServiceResponse)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            logger.error("Error fetching accessible tests for student {} with filters", studentId, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Check if student has access to specific content
      */
     public boolean hasAccessToContent(Long studentId, SubscriptionLevel level, Long entityId) {
