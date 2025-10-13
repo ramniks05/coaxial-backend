@@ -2,6 +2,9 @@ package com.coaxial.dto;
 
 import java.time.LocalDateTime;
 
+import com.coaxial.enums.TestCreationMode;
+import com.coaxial.enums.TestLevel;
+
 public class TestResponseDTO {
 
     private Long id;
@@ -31,12 +34,27 @@ public class TestResponseDTO {
     private String masterExamName; // For TestService compatibility
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Dual-mode test system fields
+    private TestCreationMode testCreationMode;
+    private TestLevel testLevel;
+    private Long courseTypeId;
+    private String courseTypeName;
+    private Long courseId;
+    private String courseName;
     private Long classId;
     private String className;
     private Long examId;
     private String examName;
-    private Long courseId;
-    private String courseName;
+    private Long subjectLinkageId;
+    private String subjectName;
+    private Long topicId;
+    private String topicName;
+    private Long moduleId;
+    private String moduleName;
+    private Long chapterId;
+    private String chapterName;
+    
     private java.util.List<com.coaxial.dto.TestQuestionSummaryDTO> questions;
 
     // Constructors
@@ -316,4 +334,41 @@ public class TestResponseDTO {
     public void setQuestions(java.util.List<com.coaxial.dto.TestQuestionSummaryDTO> questions) {
         this.questions = questions;
     }
+    
+    // Dual-mode system getters and setters
+    public TestCreationMode getTestCreationMode() { return testCreationMode; }
+    public void setTestCreationMode(TestCreationMode testCreationMode) { this.testCreationMode = testCreationMode; }
+    
+    public TestLevel getTestLevel() { return testLevel; }
+    public void setTestLevel(TestLevel testLevel) { this.testLevel = testLevel; }
+    
+    public Long getCourseTypeId() { return courseTypeId; }
+    public void setCourseTypeId(Long courseTypeId) { this.courseTypeId = courseTypeId; }
+    
+    public String getCourseTypeName() { return courseTypeName; }
+    public void setCourseTypeName(String courseTypeName) { this.courseTypeName = courseTypeName; }
+    
+    public Long getSubjectLinkageId() { return subjectLinkageId; }
+    public void setSubjectLinkageId(Long subjectLinkageId) { this.subjectLinkageId = subjectLinkageId; }
+    
+    public String getSubjectName() { return subjectName; }
+    public void setSubjectName(String subjectName) { this.subjectName = subjectName; }
+    
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
+    
+    public String getTopicName() { return topicName; }
+    public void setTopicName(String topicName) { this.topicName = topicName; }
+    
+    public Long getModuleId() { return moduleId; }
+    public void setModuleId(Long moduleId) { this.moduleId = moduleId; }
+    
+    public String getModuleName() { return moduleName; }
+    public void setModuleName(String moduleName) { this.moduleName = moduleName; }
+    
+    public Long getChapterId() { return chapterId; }
+    public void setChapterId(Long chapterId) { this.chapterId = chapterId; }
+    
+    public String getChapterName() { return chapterName; }
+    public void setChapterName(String chapterName) { this.chapterName = chapterName; }
 }
