@@ -9,9 +9,9 @@ import java.util.Map;
 
 /**
  * Simple health check controller for Railway deployment
+ * Provides health endpoints at both root and /api paths
  */
 @RestController
-@RequestMapping("/")
 @CrossOrigin(origins = "*")
 public class HealthController {
 
@@ -24,7 +24,7 @@ public class HealthController {
     /**
      * Root endpoint - Railway health check
      */
-    @GetMapping
+    @GetMapping("/")
     public ResponseEntity<?> root() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
@@ -38,10 +38,22 @@ public class HealthController {
     }
 
     /**
-     * Health endpoint
+     * Health endpoint at root
      */
     @GetMapping("/health")
     public ResponseEntity<?> health() {
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "Coaxial Backend");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Health endpoint for Railway at /api/actuator/health
+     * This matches Railway's default healthcheck path
+     */
+    @GetMapping("/api/actuator/health")
+    public ResponseEntity<?> railwayHealth() {
         Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
         response.put("service", "Coaxial Backend");
