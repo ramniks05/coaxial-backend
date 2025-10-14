@@ -51,24 +51,23 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> {
-                // Swagger endpoints - only in development (must come before /api/**)
-                if ("dev".equals(activeProfile)) {
-                    authz.requestMatchers(
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/v3/api-docs/**",
-                        "/api-docs/**",
-                        "/swagger-resources/**",
-                        "/webjars/**"
-                    ).permitAll();
-                }
+                // Swagger endpoints - enabled for all profiles (Railway testing)
+                authz.requestMatchers(
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/api-docs/**",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll();
                 
                 // Public endpoints
                 authz.requestMatchers(
                     "/",
                     "/health",
-                    "/actuator/health",
-                    "/actuator/health/**",
+                    "/status",
+                    "/actuator/**",
+                    "/api/actuator/**",
                     "/api/health",
                     "/error", 
                     "/api/auth/login",
