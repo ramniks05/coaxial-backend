@@ -25,12 +25,17 @@ import com.coaxial.entity.ClassSubject;
 import com.coaxial.entity.CourseSubject;
 import com.coaxial.entity.ExamSubject;
 import com.coaxial.entity.Topic;
+import com.coaxial.enums.SubscriptionLevel;
 import com.coaxial.repository.ClassSubjectRepository;
 import com.coaxial.repository.CourseSubjectRepository;
 import com.coaxial.repository.ExamSubjectRepository;
+import com.coaxial.repository.StudentSubscriptionRepository;
 import com.coaxial.repository.TopicRepository;
 import com.coaxial.service.ChapterService;
 import com.coaxial.service.ModuleService;
+import com.coaxial.service.UserService;
+
+import java.time.LocalDateTime;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -65,6 +70,12 @@ public class StudentCourseContentController {
     @Autowired
     private ChapterService chapterService;
 
+    @Autowired
+    private StudentSubscriptionRepository subscriptionRepository;
+
+    @Autowired
+    private UserService userService;
+
     /**
      * Get all subjects for an entity based on entityId and courseTypeId
      * Returns subjects from the appropriate linkage table (ClassSubject/ExamSubject/CourseSubject)
@@ -87,6 +98,37 @@ public class StudentCourseContentController {
             @RequestParam Long courseTypeId,
             Authentication authentication) {
         try {
+            Long studentId = getCurrentStudentId(authentication);
+            LocalDateTime now = LocalDateTime.now();
+            
+            // Validate subscription based on course type
+            SubscriptionLevel requiredLevel;
+            String entityTypeName;
+            
+            if (courseTypeId == 1L) {
+                requiredLevel = SubscriptionLevel.CLASS;
+                entityTypeName = "Class";
+            } else if (courseTypeId == 2L) {
+                requiredLevel = SubscriptionLevel.EXAM;
+                entityTypeName = "Exam";
+            } else if (courseTypeId == 3L) {
+                requiredLevel = SubscriptionLevel.COURSE;
+                entityTypeName = "Course";
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid courseTypeId. Must be 1 (Academic), 2 (Competitive), or 3 (Professional)"));
+            }
+            
+            // Check if student has active subscription
+            boolean hasAccess = subscriptionRepository.hasStudentAccessToEntity(
+                    studentId, requiredLevel, entityId, now);
+            
+            if (!hasAccess) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have an active subscription for this " + 
+                                entityTypeName + ". Please purchase a subscription to access subjects."));
+            }
+            
             List<Map<String, Object>> subjects = new ArrayList<>();
             String courseTypeName = null;
             
@@ -348,6 +390,16 @@ public class StudentCourseContentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to fetch chapters: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Get current student ID from authentication
+     */
+    private Long getCurrentStudentId(Authentication authentication) {
+        String username = authentication.getName();
+        return userService.getUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Student not found"))
+                .getId();
     }
 }
 

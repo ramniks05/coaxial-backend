@@ -35,10 +35,12 @@ public class StudentQuestionService {
     
     /**
      * Get questions accessible to student based on their subscriptions with filters
+     * Uses courseTypeId and linkageId (relationshipId) to filter questions
      */
     public Page<StudentQuestionResponseDTO> getAccessibleQuestions(
             Long studentId,
-            Long subjectId,
+            Long courseTypeId,
+            Long linkageId,
             Long topicId,
             Long moduleId,
             Long chapterId,
@@ -61,7 +63,7 @@ public class StudentQuestionService {
         List<Question> accessibleQuestions = allQuestions.stream()
                 .filter(q -> q.getIsActive())
                 .filter(q -> hasAccessToQuestion(studentId, q, subscriptions))
-                .filter(q -> applyFilters(q, subjectId, topicId, moduleId, chapterId, questionType, difficultyLevel))
+                .filter(q -> applyFilters(q, courseTypeId, linkageId, topicId, moduleId, chapterId, questionType, difficultyLevel))
                 .collect(Collectors.toList());
         
         // Apply pagination
@@ -148,10 +150,15 @@ public class StudentQuestionService {
     
     /**
      * Apply filters to question
+     * Uses courseTypeId and linkageId (relationshipId) for subject filtering
      */
-    private boolean applyFilters(Question q, Long subjectId, Long topicId, Long moduleId, 
-                                 Long chapterId, String questionType, String difficultyLevel) {
-        if (subjectId != null && !subjectId.equals(q.getSubjectId())) {
+    private boolean applyFilters(Question q, Long courseTypeId, Long linkageId, Long topicId, 
+                                 Long moduleId, Long chapterId, String questionType, String difficultyLevel) {
+        // Filter by courseTypeId and linkageId (relationshipId)
+        if (courseTypeId != null && !courseTypeId.equals(q.getCourseTypeId())) {
+            return false;
+        }
+        if (linkageId != null && !linkageId.equals(q.getRelationshipId())) {
             return false;
         }
         if (topicId != null && !topicId.equals(q.getTopicId())) {
@@ -160,7 +167,7 @@ public class StudentQuestionService {
         if (moduleId != null && !moduleId.equals(q.getModuleId())) {
             return false;
         }
-        if (chapterId != null && !chapterId.equals(q.getChapter().getId())) {
+        if (chapterId != null && (q.getChapter() == null || !chapterId.equals(q.getChapter().getId()))) {
             return false;
         }
         if (questionType != null && !questionType.equalsIgnoreCase(q.getQuestionType())) {

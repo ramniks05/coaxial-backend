@@ -50,8 +50,10 @@ public class StudentQuestionController {
     })
     @GetMapping
     public ResponseEntity<?> getAccessibleQuestions(
-            @Parameter(description = "Filter by subject ID")
-            @RequestParam(required = false) Long subjectId,
+            @Parameter(description = "Course Type ID (1=Academic, 2=Competitive, 3=Professional)")
+            @RequestParam(required = false) Long courseTypeId,
+            @Parameter(description = "Linkage ID (ClassSubject/ExamSubject/CourseSubject ID)")
+            @RequestParam(required = false) Long linkageId,
             @Parameter(description = "Filter by topic ID")
             @RequestParam(required = false) Long topicId,
             @Parameter(description = "Filter by module ID")
@@ -83,7 +85,7 @@ public class StudentQuestionController {
             Pageable pageable = PageRequest.of(page, size, sort);
             
             Page<StudentQuestionResponseDTO> questions = questionService.getAccessibleQuestions(
-                    studentId, subjectId, topicId, moduleId, chapterId, 
+                    studentId, courseTypeId, linkageId, topicId, moduleId, chapterId, 
                     questionType, difficultyLevel, pageable);
             
             return ResponseEntity.ok(questions);
