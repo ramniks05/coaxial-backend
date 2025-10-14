@@ -48,4 +48,5 @@ USER appuser
 
 # Run the application using startup script
 # This ensures PORT environment variable is properly passed to Java
-CMD ["/app/start.sh"]
+# Using shell form to execute the script
+CMD /app/start.sh
