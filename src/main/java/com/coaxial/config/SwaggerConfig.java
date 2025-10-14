@@ -40,6 +40,9 @@ public class SwaggerConfig {
                                 .url("http://localhost:8080")
                                 .description("Development Server"),
                         new Server()
+                                .url("https://coaxial-backend-production.up.railway.app")
+                                .description("Railway Production Server"),
+                        new Server()
                                 .url("https://api.coaxial.com")
                                 .description("Production Server")
                 ))
