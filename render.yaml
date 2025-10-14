@@ -5,21 +5,43 @@ services:
     repo: https://github.com/ramniks05/coaxial-backend
     branch: master
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/actuator/health
+    healthCheckPath: /actuator/health
     envVars:
+      # Application Configuration
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      
+      # Database Configuration
       - key: DB_URL
         value: jdbc:postgresql://dpg-d3jsavnfte5s73822hf0-a.oregon-postgres.render.com:5432/coaxial
       - key: DB_USERNAME
         value: coaxial
       - key: DB_PASSWORD
         value: XGOxywCzJ9q4Px2hCThRmwCjRAXzBymz
+      
+      # JWT Configuration - IMPORTANT: Set via Render Dashboard (Secret)
+      - key: JWT_SECRET
+        sync: false
       - key: JWT_EXPIRATION
         value: 86400000
       - key: JWT_REFRESH_EXPIRATION
         value: 604800000
+      
+      # CORS Configuration - IMPORTANT: Set your frontend URL
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      
+      # Razorpay Configuration - IMPORTANT: Set via Render Dashboard (Secret)
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      
+      # Logging Configuration
       - key: LOG_FILE_PATH
         value: /var/log/coaxial/application.log
+    
     autoDeploy: true
 
