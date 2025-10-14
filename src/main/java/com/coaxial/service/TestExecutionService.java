@@ -219,8 +219,8 @@ public class TestExecutionService {
             answer.setIsCorrect(isCorrect);
             answer.setIsAnswered(true);
             
-            // Calculate marks
-            Double marksForQuestion = testQuestionRepository.findByIdAndTestId(answer.getTestAttempt().getId(), testId)
+            // Calculate marks - find TestQuestion by testId and questionId
+            Double marksForQuestion = testQuestionRepository.findByTestIdAndQuestionId(testId, request.getQuestionId())
                     .map(tq -> tq.getMarks().doubleValue())
                     .orElse(0.0);
             
@@ -333,6 +333,93 @@ public class TestExecutionService {
         }
         
         return toResultDTO(attempt);
+    }
+    
+    /**
+     * Get active session for a test
+     */
+    @Transactional(readOnly = true)
+    public TestSessionResponseDTO getActiveSession(Long testId, Long studentId) {
+        return testSessionRepository.findActiveSessionByTestAndStudent(testId, studentId)
+                .map(session -> {
+                    TestAttempt attempt = testAttemptRepository.findActiveAttempt(testId, studentId)
+                            .orElse(null);
+                    
+                    if (attempt == null) {
+                        return null;
+                    }
+                    
+                    Test test = session.getTest();
+                    
+                    TestSessionResponseDTO response = new TestSessionResponseDTO();
+                    response.setSessionId(session.getSessionId());
+                    response.setAttemptId(attempt.getId());
+                    response.setTestId(test.getId());
+                    response.setTestName(test.getTestName());
+                    response.setTimeLimitMinutes(test.getTimeLimitMinutes());
+                    response.setTotalQuestions(attempt.getTotalQuestions());
+                    response.setAttemptNumber(attempt.getAttemptNumber());
+                    response.setStartedAt(session.getStartedAt());
+                    response.setExpiresAt(session.getStartedAt().plusMinutes(test.getTimeLimitMinutes()));
+                    response.setStatus(session.getStatus().name());
+                    response.setNegativeMarking(test.getNegativeMarking());
+                    response.setNegativeMarkPercentage(test.getNegativeMarkPercentage());
+                    response.setAllowReview(test.getAllowReview());
+                    response.setShowCorrectAnswers(test.getShowCorrectAnswers());
+                    response.setAllowSkip(test.getAllowSkip());
+                    
+                    return response;
+                })
+                .orElse(null);
+    }
+    
+    /**
+     * Abandon/Cancel active session without submitting
+     */
+    @Transactional
+    public void abandonSession(Long testId, Long studentId) {
+        // Find active session
+        TestSession session = testSessionRepository.findActiveSessionByTestAndStudent(testId, studentId)
+                .orElseThrow(() -> new IllegalArgumentException("No active session found for this test"));
+        
+        // Mark session as abandoned
+        session.setStatus(TestSessionStatus.ABANDONED);
+        session.setEndedAt(LocalDateTime.now());
+        testSessionRepository.save(session);
+        
+        // Mark attempt as inactive (not submitted)
+        testAttemptRepository.findActiveAttempt(testId, studentId)
+                .ifPresent(attempt -> {
+                    attempt.setIsActive(false);
+                    testAttemptRepository.save(attempt);
+                });
+        
+        logger.info("Abandoned session {} for test {} and student {}", session.getSessionId(), testId, studentId);
+    }
+    
+    /**
+     * Get all submitted attempts for a specific test by student
+     */
+    @Transactional(readOnly = true)
+    public List<TestResultDTO> getTestAttempts(Long testId, Long studentId) {
+        return testAttemptRepository.findByTestIdAndStudentId(testId, studentId).stream()
+                .filter(TestAttempt::getIsSubmitted)
+                .map(this::toResultDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all submitted attempts for a student across all tests
+     */
+    @Transactional(readOnly = true)
+    public List<TestResultDTO> getStudentAttempts(Long studentId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+        
+        return testAttemptRepository.findByStudentOrderByStartedAtDesc(student).stream()
+                .filter(TestAttempt::getIsSubmitted)
+                .map(this::toResultDTO)
+                .collect(Collectors.toList());
     }
     
     // Helper methods

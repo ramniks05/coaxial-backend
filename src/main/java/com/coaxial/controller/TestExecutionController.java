@@ -195,6 +195,116 @@ public class TestExecutionController {
     }
     
     /**
+     * Get active session for a test
+     */
+    @Operation(
+        summary = "Get active test session",
+        description = "Retrieves the current active session for a test if one exists"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Active session retrieved or no active session"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/{testId}/active-session")
+    public ResponseEntity<?> getActiveSession(
+            @PathVariable Long testId,
+            Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            TestSessionResponseDTO session = testExecutionService.getActiveSession(testId, studentId);
+            if (session != null) {
+                return ResponseEntity.ok(session);
+            } else {
+                return ResponseEntity.ok(Map.of("hasActiveSession", false));
+            }
+        } catch (Exception e) {
+            logger.error("Error getting active session for test {}", testId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to get active session"));
+        }
+    }
+    
+    /**
+     * Abandon/Cancel an active test session
+     */
+    @Operation(
+        summary = "Abandon test session",
+        description = "Cancels the current active session without submitting. Use this to start a new attempt."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Session abandoned successfully"),
+        @ApiResponse(responseCode = "400", description = "No active session found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @DeleteMapping("/{testId}/abandon-session")
+    public ResponseEntity<?> abandonSession(
+            @PathVariable Long testId,
+            Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            testExecutionService.abandonSession(testId, studentId);
+            return ResponseEntity.ok(Map.of("message", "Session abandoned successfully. You can now start a new attempt."));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Failed to abandon session for test {}: {}", testId, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error abandoning session for test {}", testId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to abandon session"));
+        }
+    }
+    
+    /**
+     * Get all test attempts for a specific test
+     */
+    @Operation(
+        summary = "Get test attempts history",
+        description = "Retrieves all submitted attempts for a specific test by the student"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Attempts retrieved successfully"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/{testId}/attempts")
+    public ResponseEntity<?> getTestAttempts(
+            @PathVariable Long testId,
+            Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            List<TestResultDTO> attempts = testExecutionService.getTestAttempts(testId, studentId);
+            return ResponseEntity.ok(attempts);
+        } catch (Exception e) {
+            logger.error("Error getting attempts for test {}", testId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to get test attempts"));
+        }
+    }
+    
+    /**
+     * Get all test attempts for the student across all tests
+     */
+    @Operation(
+        summary = "Get all test attempts",
+        description = "Retrieves all submitted test attempts for the current student"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Attempts retrieved successfully"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/attempts")
+    public ResponseEntity<?> getAllAttempts(Authentication authentication) {
+        try {
+            Long studentId = getCurrentStudentId(authentication);
+            List<TestResultDTO> attempts = testExecutionService.getStudentAttempts(studentId);
+            return ResponseEntity.ok(attempts);
+        } catch (Exception e) {
+            logger.error("Error getting all attempts for student", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to get test attempts"));
+        }
+    }
+    
+    /**
      * Get current student ID from authentication
      */
     private Long getCurrentStudentId(Authentication authentication) {

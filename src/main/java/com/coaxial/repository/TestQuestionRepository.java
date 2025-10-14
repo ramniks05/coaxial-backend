@@ -13,6 +13,8 @@ public interface TestQuestionRepository extends JpaRepository<TestQuestion, Long
     List<TestQuestion> findByTestIdOrderByQuestionOrderAsc(Long testId);
 
     Optional<TestQuestion> findByIdAndTestId(Long id, Long testId);
+    
+    Optional<TestQuestion> findByTestIdAndQuestionId(Long testId, Long questionId);
 
     long deleteByIdAndTestId(Long id, Long testId);
 }
