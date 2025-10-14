@@ -1,6 +1,8 @@
 package com.coaxial.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +31,7 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Build list of allowed origin patterns
-        java.util.List<String> originPatterns = new java.util.ArrayList<>();
+        List<String> originPatterns = new ArrayList<>();
         
         // Always allow localhost for development
         originPatterns.addAll(Arrays.asList(
