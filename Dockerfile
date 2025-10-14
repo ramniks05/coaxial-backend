@@ -44,5 +44,5 @@ USER appuser
 #     CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application with dynamic port from Railway
-# Using exec form with shell to properly expand environment variables
-CMD exec java -Dserver.port=${PORT:-8080} -Dspring.profiles.active=prod -jar app.jar
+# PORT environment variable is read by Spring Boot via application-prod.properties
+CMD ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
