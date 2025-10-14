@@ -1,0 +1,20 @@
+# Ensure shell scripts always use LF line endings
+*.sh text eol=lf
+
+# Docker files
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# Source code
+*.java text
+*.xml text
+*.properties text
+*.yml text
+*.yaml text
+*.json text
+*.md text
+
+# Binary files
+*.jar binary
+*.pdf binary
+
