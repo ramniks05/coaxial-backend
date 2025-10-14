@@ -29,17 +29,19 @@ COPY --from=build /app/target/coaxial-*.jar app.jar
 
 # Change ownership to app user
 RUN chown -R appuser:appuser /app
-USER appuser
 
 # Expose port (Railway uses dynamic PORT)
-EXPOSE ${PORT:-8080}
+EXPOSE 8080
 
 # Environment variables
 ENV SPRING_PROFILES_ACTIVE=prod
+
+# Switch to app user
+USER appuser
 
 # Health check - REMOVED TEMPORARILY
 # HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 #     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the application with dynamic port
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -Dspring.profiles.active=prod -jar app.jar"]
+# Run the application with dynamic port from Railway
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -Dspring.profiles.active=prod -jar app.jar"]
