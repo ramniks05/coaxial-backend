@@ -21,8 +21,35 @@ public class SwaggerConfig {
     @Value("${spring.application.version:1.0.0}")
     private String applicationVersion;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     @Bean
     public OpenAPI customOpenAPI() {
+        // Determine server order based on active profile
+        List<Server> servers;
+        if ("prod".equals(activeProfile)) {
+            // Production: Railway URL first
+            servers = List.of(
+                    new Server()
+                            .url("https://coaxial-backend-production.up.railway.app")
+                            .description("Railway Production Server"),
+                    new Server()
+                            .url("http://localhost:8080")
+                            .description("Development Server")
+            );
+        } else {
+            // Development: localhost first
+            servers = List.of(
+                    new Server()
+                            .url("http://localhost:8080")
+                            .description("Development Server"),
+                    new Server()
+                            .url("https://coaxial-backend-production.up.railway.app")
+                            .description("Railway Production Server")
+            );
+        }
+
         return new OpenAPI()
                 .info(new Info()
                         .title("Coaxial Learning Management System API")
@@ -35,17 +62,7 @@ public class SwaggerConfig {
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
-                .servers(List.of(
-                        new Server()
-                                .url("http://localhost:8080")
-                                .description("Development Server"),
-                        new Server()
-                                .url("https://coaxial-backend-production.up.railway.app")
-                                .description("Railway Production Server"),
-                        new Server()
-                                .url("https://api.coaxial.com")
-                                .description("Production Server")
-                ))
+                .servers(servers)
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components()
                         .addSecuritySchemes("Bearer Authentication", 
