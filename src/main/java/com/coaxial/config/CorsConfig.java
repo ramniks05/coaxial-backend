@@ -28,18 +28,33 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // For development: Allow all localhost origins with different ports
-        configuration.setAllowedOriginPatterns(Arrays.asList(
+        // Build list of allowed origin patterns
+        java.util.List<String> originPatterns = new java.util.ArrayList<>();
+        
+        // Always allow localhost for development
+        originPatterns.addAll(Arrays.asList(
             "http://localhost:*",
             "https://localhost:*",
             "http://127.0.0.1:*",
             "https://127.0.0.1:*"
         ));
         
-        // Also add specific origins from configuration
-        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
-            configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+        // Always allow Railway backend domain (for Swagger to work)
+        originPatterns.add("https://*.up.railway.app");
+        
+        // Add specific origins from configuration
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty() 
+            && !allowedOrigins.equals("https://yourdomain.com")) {
+            String[] origins = allowedOrigins.split(",");
+            for (String origin : origins) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty() && !trimmed.equals("https://yourdomain.com")) {
+                    originPatterns.add(trimmed);
+                }
+            }
         }
+        
+        configuration.setAllowedOriginPatterns(originPatterns);
         
         // Set allowed methods
         configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
