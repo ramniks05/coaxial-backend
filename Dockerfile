@@ -27,11 +27,8 @@ WORKDIR /app
 # Copy jar from build stage
 COPY --from=build /app/target/coaxial-*.jar app.jar
 
-# Copy startup script
-COPY start.sh /app/start.sh
-
-# Make startup script executable and change ownership to app user
-RUN chmod +x /app/start.sh && chown -R appuser:appuser /app
+# Change ownership to app user
+RUN chown -R appuser:appuser /app
 
 # Expose port (Railway uses dynamic PORT)
 EXPOSE 8080
@@ -46,7 +43,6 @@ USER appuser
 # HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 #     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the application using startup script
-# This ensures PORT environment variable is properly passed to Java
-# Using shell form to execute the script
-CMD /app/start.sh
+# Run the application
+# Railway will inject PORT environment variable, Spring Boot will read it from application-prod.properties
+CMD ["java", "-Dspring.profiles.active=prod", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
