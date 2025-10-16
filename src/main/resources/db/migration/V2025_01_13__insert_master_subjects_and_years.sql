@@ -1,5 +1,17 @@
--- Migration to insert master data for subjects, exams, and years
--- This will initialize the system with common academic subjects, competitive exam subjects, and popular exams
+-- Migration to insert master data for course types, subjects, exams, and years
+-- This will initialize the system with course types, academic subjects, competitive exam subjects, and popular exams
+
+-- =====================================================
+-- INSERT COURSE TYPES (REQUIRED FIRST)
+-- =====================================================
+-- The 3 essential course types that the system requires
+
+INSERT INTO course_types (name, description, structure_type, display_order, is_active, created_at, updated_at)
+VALUES 
+    ('Academic', 'Traditional school and college courses', 'ACADEMIC', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Competitive', 'Competitive exam preparation courses', 'COMPETITIVE', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Professional', 'Professional skill development courses', 'PROFESSIONAL', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
 -- INSERT MASTER SUBJECTS FOR ACADEMIC COURSES
@@ -73,6 +85,7 @@ ON CONFLICT (id) DO NOTHING;
 -- =====================================================
 -- Uncomment these to verify the data was inserted correctly
 
+-- SELECT * FROM course_types ORDER BY display_order;
 -- SELECT * FROM subjects WHERE course_type_id = 1 ORDER BY display_order;
 -- SELECT * FROM subjects WHERE course_type_id = 2 ORDER BY display_order;
 -- SELECT * FROM master_exams WHERE is_active = true ORDER BY exam_name;

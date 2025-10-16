@@ -8,6 +8,7 @@ public class LoginResponse {
     private String type = "Bearer";
     private User user;
     private String message;
+    private boolean success = true;
 
     public LoginResponse() {}
 
@@ -19,6 +20,7 @@ public class LoginResponse {
         this.token = token;
         this.user = user;
         this.message = message;
+        this.success = true;
     }
 
     public String getToken() {
@@ -51,5 +53,13 @@ public class LoginResponse {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import com.coaxial.entity.CourseType;
 import com.coaxial.entity.MasterExam;
 import com.coaxial.entity.MasterYear;
+import com.coaxial.entity.StructureType;
 import com.coaxial.entity.Subject;
 import com.coaxial.repository.CourseTypeRepository;
 import com.coaxial.repository.MasterExamRepository;
@@ -21,7 +22,7 @@ import com.coaxial.repository.MasterYearRepository;
 import com.coaxial.repository.SubjectRepository;
 
 /**
- * Initializes master data (subjects, exams, and years) when the application starts.
+ * Initializes master data (course types, subjects, exams, and years) when the application starts.
  * This ensures the system has essential reference data available from the first run.
  */
 @Component
@@ -46,6 +47,9 @@ public class MasterDataInitializer implements ApplicationRunner {
         try {
             logger.info("Starting master data initialization...");
             
+            // Initialize course types FIRST (required by subjects)
+            initializeCourseTypes();
+            
             // Initialize subjects
             initializeAcademicSubjects();
             initializeCompetitiveSubjects();
@@ -60,6 +64,38 @@ public class MasterDataInitializer implements ApplicationRunner {
         } catch (Exception e) {
             logger.error("Failed to initialize master data", e);
         }
+    }
+
+    /**
+     * Initialize the 3 essential course types (Academic, Competitive, Professional)
+     */
+    private void initializeCourseTypes() {
+        List<CourseTypeData> courseTypes = new ArrayList<>();
+        
+        // Define the 3 core course types with specific IDs
+        courseTypes.add(new CourseTypeData("Academic", "Traditional school and college courses", StructureType.ACADEMIC, 1));
+        courseTypes.add(new CourseTypeData("Competitive", "Competitive exam preparation courses", StructureType.COMPETITIVE, 2));
+        courseTypes.add(new CourseTypeData("Professional", "Professional skill development courses", StructureType.PROFESSIONAL, 3));
+
+        int inserted = 0;
+        for (CourseTypeData data : courseTypes) {
+            if (!courseTypeRepository.existsByNameIgnoreCase(data.name)) {
+                CourseType courseType = new CourseType();
+                courseType.setName(data.name);
+                courseType.setDescription(data.description);
+                courseType.setStructureType(data.structureType);
+                courseType.setDisplayOrder(data.displayOrder);
+                courseType.setIsActive(true);
+                
+                courseTypeRepository.save(courseType);
+                inserted++;
+                logger.info("Inserted course type: {} ({})", data.name, data.structureType);
+            } else {
+                logger.debug("Course type already exists: {}", data.name);
+            }
+        }
+        
+        logger.info("Course types initialization complete. Inserted: {}/{}", inserted, courseTypes.size());
     }
 
     /**
@@ -258,6 +294,23 @@ public class MasterDataInitializer implements ApplicationRunner {
         ExamData(String examName, String description) {
             this.examName = examName;
             this.description = description;
+        }
+    }
+
+    /**
+     * Inner class to hold course type data during initialization
+     */
+    private static class CourseTypeData {
+        String name;
+        String description;
+        StructureType structureType;
+        int displayOrder;
+
+        CourseTypeData(String name, String description, StructureType structureType, int displayOrder) {
+            this.name = name;
+            this.description = description;
+            this.structureType = structureType;
+            this.displayOrder = displayOrder;
         }
     }
 }
