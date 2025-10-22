@@ -174,14 +174,20 @@ public class ChapterController {
 
     // Create new chapter with multipart data (supports both JSON and form parameters)
     @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, "multipart/form-data;charset=UTF-8" })
-    public ResponseEntity<ChapterResponseDTO> createChapter(
+    public ResponseEntity<?> createChapter(
             @RequestParam("chapter") String chapterJson,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "fileTitles", required = false) String[] fileTitles,
             @RequestParam(value = "videoLinks", required = false) String[] videoLinks,
             @RequestParam(value = "videoTitles", required = false) String[] videoTitles) {
         try {
+            System.out.println("=== Chapter Creation Debug ===");
+            System.out.println("Chapter JSON: " + chapterJson);
+            System.out.println("Files count: " + (files != null ? files.length : 0));
+            System.out.println("Video links count: " + (videoLinks != null ? videoLinks.length : 0));
+            
             ChapterRequestDTO chapterRequestDTO = objectMapper.readValue(chapterJson, ChapterRequestDTO.class);
+            System.out.println("Module ID: " + chapterRequestDTO.getModuleId());
             
             // Handle video links with titles (form parameters only)
             if (videoLinks != null && videoLinks.length > 0) {
@@ -199,6 +205,7 @@ public class ChapterController {
             // Let ChapterFileService handle files completely - no DTO processing
             
             ChapterResponseDTO createdChapter = chapterService.createChapter(chapterRequestDTO);
+            System.out.println("Chapter created with ID: " + createdChapter.getId());
 
             // Handle actual file uploads if provided
             if (createdChapter.getId() != null && files != null && files.length > 0) {
@@ -213,9 +220,19 @@ public class ChapterController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(createdChapter);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            System.err.println("Validation error: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Validation failed: " + e.getMessage());
+            error.put("type", "IllegalArgumentException");
+            return ResponseEntity.badRequest().body(error);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            System.err.println("Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "An error occurred: " + e.getMessage());
+            error.put("type", e.getClass().getSimpleName());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     

@@ -71,8 +71,11 @@ public class ChapterFileService {
             ChapterUploadedFile rec = new ChapterUploadedFile();
             rec.setChapter(chapter);
             rec.setFileName(target.getFileName().toString());
-            // Store relative path instead of absolute path for proper URL resolution
-            rec.setFilePath("uploads/chapters/" + chapter.getId() + "/" + target.getFileName().toString());
+            
+            // Save relative path (without base directory) for portability across environments
+            String relativePath = "uploads/chapters/" + chapter.getId() + "/" + target.getFileName().toString();
+            rec.setFilePath(relativePath);
+            
             rec.setFileType(mf.getContentType());
             rec.setFileSize(mf.getSize());
             rec.setDisplayOrder(order++);

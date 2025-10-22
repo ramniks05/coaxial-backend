@@ -52,6 +52,12 @@ public class ChapterResponseDTO {
                 .map(file -> {
                     String path = file.getFilePath();
                     if (path != null && !path.trim().isEmpty()) {
+                        // Normalize path: remove 'app/' or '/app/' prefix if present
+                        if (path.startsWith("/app/")) {
+                            path = path.substring(4); // Remove '/app' keeping the slash
+                        } else if (path.startsWith("app/")) {
+                            path = path.substring(4); // Remove 'app/', will add slash below
+                        }
                         // Ensure leading slash for relative URL
                         path = path.startsWith("/") ? path : "/" + path;
                     } else {
