@@ -76,45 +76,11 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
             databaseUrl = System.getenv("DATABASE_URL");
         }
         
-        // Check if DB_URL points to internal service - if so, skip it and try alternative approaches
+        // Check if DB_URL points to internal service - log a warning but still convert it
+        // Since both database and application are on Railway, internal service name should work
         if (databaseUrl != null && databaseUrl.contains("railway.internal")) {
-            System.out.println("DatabaseConfig: WARNING - DB_URL points to internal service (railway.internal). Skipping it.");
-            System.out.println("DatabaseConfig: Attempting to construct connection from DB_USERNAME/DB_PASSWORD with public proxy...");
-            
-            // Try to get public proxy info from alternative Railway variables
-            String publicDbUrl = System.getenv("RAILWAY_PUBLIC_DB_URL");
-            if (publicDbUrl == null || publicDbUrl.isEmpty()) {
-                publicDbUrl = System.getenv("PUBLIC_DB_URL");
-            }
-            
-            if (publicDbUrl != null && !publicDbUrl.isEmpty() && !publicDbUrl.contains("railway.internal")) {
-                databaseUrl = publicDbUrl;
-                System.out.println("DatabaseConfig: Found alternative public DB_URL variable");
-            } else {
-                // If no alternative URL found, explicitly set the public proxy URL to override DB_URL
-                // Use the public proxy URL from application-prod.properties default
-                String publicProxyUrl = "jdbc:postgresql://yamabiko.proxy.rlwy.net:53822/railway";
-                Map<String, Object> properties = new HashMap<>();
-                properties.put("spring.datasource.url", publicProxyUrl);
-                
-                // Use DB_USERNAME and DB_PASSWORD from environment
-                String dbUsername = System.getenv("DB_USERNAME");
-                String dbPassword = System.getenv("DB_PASSWORD");
-                
-                if (dbUsername != null && !dbUsername.isEmpty()) {
-                    properties.put("spring.datasource.username", dbUsername);
-                }
-                if (dbPassword != null && !dbPassword.isEmpty()) {
-                    properties.put("spring.datasource.password", dbPassword);
-                }
-                
-                environment.getPropertySources().addFirst(
-                    new MapPropertySource("databaseUrlConfig", properties)
-                );
-                
-                System.out.println("DatabaseConfig: No alternative public DB_URL found. Using public proxy URL: " + publicProxyUrl);
-                return; // Exit early since we've set the properties
-            }
+            System.out.println("DatabaseConfig: INFO - DB_URL points to internal service (railway.internal).");
+            System.out.println("DatabaseConfig: Since both services are on Railway, this should work. Converting to JDBC format...");
         }
         
         if (databaseUrl != null) {
