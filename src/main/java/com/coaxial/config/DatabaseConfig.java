@@ -91,11 +91,29 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
                 databaseUrl = publicDbUrl;
                 System.out.println("DatabaseConfig: Found alternative public DB_URL variable");
             } else {
-                // If no alternative URL found, skip DB_URL entirely and let application-prod.properties handle it
-                // But we need to ensure application-prod.properties has the correct public proxy URL
-                System.out.println("DatabaseConfig: No alternative public DB_URL found. Will use defaults from application-prod.properties");
-                System.out.println("DatabaseConfig: NOTE: Ensure application-prod.properties has correct public proxy URL, not railway.internal");
-                databaseUrl = null; // Skip the internal DB_URL
+                // If no alternative URL found, explicitly set the public proxy URL to override DB_URL
+                // Use the public proxy URL from application-prod.properties default
+                String publicProxyUrl = "jdbc:postgresql://yamabiko.proxy.rlwy.net:53822/railway";
+                Map<String, Object> properties = new HashMap<>();
+                properties.put("spring.datasource.url", publicProxyUrl);
+                
+                // Use DB_USERNAME and DB_PASSWORD from environment
+                String dbUsername = System.getenv("DB_USERNAME");
+                String dbPassword = System.getenv("DB_PASSWORD");
+                
+                if (dbUsername != null && !dbUsername.isEmpty()) {
+                    properties.put("spring.datasource.username", dbUsername);
+                }
+                if (dbPassword != null && !dbPassword.isEmpty()) {
+                    properties.put("spring.datasource.password", dbPassword);
+                }
+                
+                environment.getPropertySources().addFirst(
+                    new MapPropertySource("databaseUrlConfig", properties)
+                );
+                
+                System.out.println("DatabaseConfig: No alternative public DB_URL found. Using public proxy URL: " + publicProxyUrl);
+                return; // Exit early since we've set the properties
             }
         }
         
