@@ -76,6 +76,29 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
             databaseUrl = System.getenv("DATABASE_URL");
         }
         
+        // Check if DB_URL points to internal service - if so, skip it and try alternative approaches
+        if (databaseUrl != null && databaseUrl.contains("railway.internal")) {
+            System.out.println("DatabaseConfig: WARNING - DB_URL points to internal service (railway.internal). Skipping it.");
+            System.out.println("DatabaseConfig: Attempting to construct connection from DB_USERNAME/DB_PASSWORD with public proxy...");
+            
+            // Try to get public proxy info from alternative Railway variables
+            String publicDbUrl = System.getenv("RAILWAY_PUBLIC_DB_URL");
+            if (publicDbUrl == null || publicDbUrl.isEmpty()) {
+                publicDbUrl = System.getenv("PUBLIC_DB_URL");
+            }
+            
+            if (publicDbUrl != null && !publicDbUrl.isEmpty() && !publicDbUrl.contains("railway.internal")) {
+                databaseUrl = publicDbUrl;
+                System.out.println("DatabaseConfig: Found alternative public DB_URL variable");
+            } else {
+                // If no alternative URL found, skip DB_URL entirely and let application-prod.properties handle it
+                // But we need to ensure application-prod.properties has the correct public proxy URL
+                System.out.println("DatabaseConfig: No alternative public DB_URL found. Will use defaults from application-prod.properties");
+                System.out.println("DatabaseConfig: NOTE: Ensure application-prod.properties has correct public proxy URL, not railway.internal");
+                databaseUrl = null; // Skip the internal DB_URL
+            }
+        }
+        
         if (databaseUrl != null) {
             // Log first 80 chars for debugging (without password)
             String logUrl = databaseUrl.length() > 80 ? databaseUrl.substring(0, 80) + "..." : databaseUrl;
@@ -88,14 +111,8 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
                 }
             }
             System.out.println("DatabaseConfig: Using databaseUrl = " + logUrl);
-            
-            // Check if DB_URL points to internal service and warn
-            if (databaseUrl.contains("railway.internal")) {
-                System.out.println("DatabaseConfig: WARNING - DB_URL points to internal service (railway.internal). This may not be accessible.");
-                System.out.println("DatabaseConfig: Consider using PGHOST/PGPORT variables or updating DB_URL to use public proxy URL.");
-            }
         } else {
-            System.out.println("DatabaseConfig: No DB_URL, DATABASE_URL, or usable PG* variables found - will use defaults from application-prod.properties");
+            System.out.println("DatabaseConfig: No usable DB_URL found - will use defaults from application-prod.properties");
         }
         
         // If DB_URL is in postgresql:// format, convert to JDBC format
