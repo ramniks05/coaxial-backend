@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Coaxial LMS</title>
+    <link rel="stylesheet" href="/css/loader.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -310,6 +311,7 @@
         </div>
     </div>
     
+    <script src="/js/loader.js"></script>
     <script>
         // Ensure the function is available when the page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -355,50 +357,45 @@
             document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
         }
         
-        // Prevent duplicate loads
-        let isLoadingCourses = false;
-        let isLoadingClassExam = false;
-        let isLoadingSubjects = false;
-        let isLoadingTopics = false;
-        let isLoadingModules = false;
-        let isLoadingChapters = false;
+        // Loading states are now handled by the loader utility
 
         function loadCourses() {
-            if (isLoadingCourses) return;
             const courseTypeId = document.getElementById('courseTypeId').value;
             if (!courseTypeId) {
                 resetAllDropdowns();
                 return;
             }
             
-            isLoadingCourses = true;
-            fetch(`/api/admin/master-data/courses/course-type/${courseTypeId}`)
-                .then(response => response.json())
-                .then(courses => {
-                    const select = document.getElementById('courseId');
-                    select.innerHTML = '<option value="">Select Course</option>';
-                    courses.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course.id;
-                        option.textContent = course.name;
-                        select.appendChild(option);
-                    });
-                    // Reset dependent dropdowns
-                    document.getElementById('classOrExamId').innerHTML = '<option value="">Select Class/Exam</option>';
-                    document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
-                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
-                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
-                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
-                })
-                .catch(error => {
-                    console.error('Error loading courses:', error);
-                    alert('Error loading courses. Please try again.');
-                })
-                .finally(() => { isLoadingCourses = false; });
+            // Show dropdown loader
+            showDropdownLoader('courseId');
+            
+            fetchWithLoader(`/api/admin/master-data/courses/course-type/${courseTypeId}`, {}, 'courseId', {
+                type: 'dots',
+                text: 'Loading courses...'
+            })
+            .then(courses => {
+                const select = document.getElementById('courseId');
+                select.innerHTML = '<option value="">Select Course</option>';
+                courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course.id;
+                    option.textContent = course.name;
+                    select.appendChild(option);
+                });
+                // Reset dependent dropdowns
+                document.getElementById('classOrExamId').innerHTML = '<option value="">Select Class/Exam</option>';
+                document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+            })
+            .catch(error => {
+                console.error('Error loading courses:', error);
+                alert('Error loading courses. Please try again.');
+            });
         }
         
         function loadClassesOrExams() {
-            if (isLoadingClassExam) return;
             const courseId = document.getElementById('courseId').value;
             const courseTypeId = document.getElementById('courseTypeId').value;
             
@@ -424,33 +421,35 @@
                 return;
             }
             
-            isLoadingClassExam = true;
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(items => {
-                    const select = document.getElementById('classOrExamId');
-                    select.innerHTML = '<option value="">Select Class/Exam</option>';
-                    items.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.name;
-                        select.appendChild(option);
-                    });
-                    // Reset dependent dropdowns
-                    document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
-                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
-                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
-                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
-                })
-                .catch(error => {
-                    console.error('Error loading classes/exams:', error);
-                    alert('Error loading classes/exams. Please try again.');
-                })
-                .finally(() => { isLoadingClassExam = false; });
+            // Show dropdown loader
+            showDropdownLoader('classOrExamId');
+            
+            fetchWithLoader(endpoint, {}, 'classOrExamId', {
+                type: 'pulse',
+                text: 'Loading classes/exams...'
+            })
+            .then(items => {
+                const select = document.getElementById('classOrExamId');
+                select.innerHTML = '<option value="">Select Class/Exam</option>';
+                items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    select.appendChild(option);
+                });
+                // Reset dependent dropdowns
+                document.getElementById('subjectId').innerHTML = '<option value="">Select Subject</option>';
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+            })
+            .catch(error => {
+                console.error('Error loading classes/exams:', error);
+                alert('Error loading classes/exams. Please try again.');
+            });
         }
         
         function loadSubjects() {
-            if (isLoadingSubjects) return;
             const courseTypeId = document.getElementById('courseTypeId').value;
             const courseId = document.getElementById('courseId').value;
             const classOrExamId = document.getElementById('classOrExamId').value;
@@ -477,28 +476,31 @@
                 endpoint = `/api/admin/master-data/course-subjects/course/${courseId}`;
             }
             
-            isLoadingSubjects = true;
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(subjects => {
-                    const select = document.getElementById('subjectId');
-                    select.innerHTML = '<option value="">Select Subject</option>';
-                    subjects.forEach(subject => {
-                        const option = document.createElement('option');
-                        option.value = subject.subjectId || subject.id;
-                        option.textContent = subject.subjectName || subject.name;
-                        select.appendChild(option);
-                    });
-                    // Reset dependent dropdowns
-                    document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
-                    document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
-                    document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
-                })
-                .catch(error => {
-                    console.error('Error loading subjects:', error);
-                    alert('Error loading subjects. Please try again.');
-                })
-                .finally(() => { isLoadingSubjects = false; });
+            // Show dropdown loader
+            showDropdownLoader('subjectId');
+            
+            fetchWithLoader(endpoint, {}, 'subjectId', {
+                type: 'spinner',
+                text: 'Loading subjects...'
+            })
+            .then(subjects => {
+                const select = document.getElementById('subjectId');
+                select.innerHTML = '<option value="">Select Subject</option>';
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject.subjectId || subject.id;
+                    option.textContent = subject.subjectName || subject.name;
+                    select.appendChild(option);
+                });
+                // Reset dependent dropdowns
+                document.getElementById('topicId').innerHTML = '<option value="">Select Topic</option>';
+                document.getElementById('moduleId').innerHTML = '<option value="">Select Module</option>';
+                document.getElementById('chapterId').innerHTML = '<option value="">Select Chapter</option>';
+            })
+            .catch(error => {
+                console.error('Error loading subjects:', error);
+                alert('Error loading subjects. Please try again.');
+            });
         }
         
         function loadTopics() {
@@ -648,6 +650,12 @@
             
             console.log('Submitting question data:', questionData);
             
+            // Show button loader
+            showButtonLoader('createQuestionBtn', {
+                type: 'spinner',
+                text: 'Creating Question...'
+            });
+            
             fetch('/api/admin/master-data/questions', {
                 method: 'POST',
                 headers: {
@@ -666,6 +674,9 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error creating question. Please try again.');
+            })
+            .finally(() => {
+                hideButtonLoader('createQuestionBtn');
             });
         });
         
