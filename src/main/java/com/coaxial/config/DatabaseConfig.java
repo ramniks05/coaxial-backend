@@ -21,15 +21,61 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
     public void initialize(@NonNull ConfigurableApplicationContext applicationContext) {
         ConfigurableEnvironment environment = applicationContext.getEnvironment();
         
-        // Try multiple environment variable names that Railway might use
+        // Check for PG* variables first (these should point to public proxy, not internal service)
+        String pgHost = System.getenv("PGHOST");
+        String pgPort = System.getenv("PGPORT");
+        String pgDatabase = System.getenv("PGDATABASE");
+        String pgUser = System.getenv("PGUSER");
+        String pgPassword = System.getenv("PGPASSWORD");
+        
+        // Debug logging
+        System.out.println("DatabaseConfig: PGHOST = " + (pgHost != null ? pgHost : "NULL"));
+        System.out.println("DatabaseConfig: PGPORT = " + (pgPort != null ? pgPort : "NULL"));
+        System.out.println("DatabaseConfig: DB_URL env var = " + (System.getenv("DB_URL") != null ? "SET" : "NULL"));
+        System.out.println("DatabaseConfig: DATABASE_URL env var = " + (System.getenv("DATABASE_URL") != null ? "SET" : "NULL"));
+        
+        // Prioritize PGHOST if available (should be public proxy, not internal)
+        if (pgHost != null && !pgHost.isEmpty() && !pgHost.contains("railway.internal")) {
+            // Build JDBC URL from individual PG* components (public proxy)
+            int port = pgPort != null && !pgPort.isEmpty() ? Integer.parseInt(pgPort) : 5432;
+            String db = pgDatabase != null && !pgDatabase.isEmpty() ? pgDatabase : "railway";
+            String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", pgHost, port, db);
+            
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("spring.datasource.url", jdbcUrl);
+            if (pgUser != null && !pgUser.isEmpty()) {
+                properties.put("spring.datasource.username", pgUser);
+            } else {
+                // Fallback to DB_USERNAME if PGUSER not available
+                String dbUsername = System.getenv("DB_USERNAME");
+                if (dbUsername != null && !dbUsername.isEmpty()) {
+                    properties.put("spring.datasource.username", dbUsername);
+                }
+            }
+            if (pgPassword != null && !pgPassword.isEmpty()) {
+                properties.put("spring.datasource.password", pgPassword);
+            } else {
+                // Fallback to DB_PASSWORD if PGPASSWORD not available
+                String dbPassword = System.getenv("DB_PASSWORD");
+                if (dbPassword != null && !dbPassword.isEmpty()) {
+                    properties.put("spring.datasource.password", dbPassword);
+                }
+            }
+            
+            environment.getPropertySources().addFirst(
+                new MapPropertySource("databaseUrlConfig", properties)
+            );
+            
+            System.out.println("DatabaseConfig: Built JDBC URL from PG* variables (public proxy): " + jdbcUrl);
+            return;
+        }
+        
+        // Fallback to DB_URL or DATABASE_URL
         String databaseUrl = System.getenv("DB_URL");
         if (databaseUrl == null || databaseUrl.isEmpty()) {
             databaseUrl = System.getenv("DATABASE_URL");
         }
         
-        // Debug logging
-        System.out.println("DatabaseConfig: DB_URL env var = " + (System.getenv("DB_URL") != null ? "SET" : "NULL"));
-        System.out.println("DatabaseConfig: DATABASE_URL env var = " + (System.getenv("DATABASE_URL") != null ? "SET" : "NULL"));
         if (databaseUrl != null) {
             // Log first 80 chars for debugging (without password)
             String logUrl = databaseUrl.length() > 80 ? databaseUrl.substring(0, 80) + "..." : databaseUrl;
@@ -42,38 +88,14 @@ public class DatabaseConfig implements ApplicationContextInitializer<Configurabl
                 }
             }
             System.out.println("DatabaseConfig: Using databaseUrl = " + logUrl);
-        } else {
-            System.out.println("DatabaseConfig: databaseUrl is NULL - checking PGHOST/PGPORT...");
-            // Try using individual PG* variables as fallback
-            String pgHost = System.getenv("PGHOST");
-            String pgPort = System.getenv("PGPORT");
-            String pgDatabase = System.getenv("PGDATABASE");
-            String pgUser = System.getenv("PGUSER");
-            String pgPassword = System.getenv("PGPASSWORD");
             
-            if (pgHost != null && !pgHost.isEmpty()) {
-                // Build JDBC URL from individual components
-                int port = pgPort != null && !pgPort.isEmpty() ? Integer.parseInt(pgPort) : 5432;
-                String db = pgDatabase != null && !pgDatabase.isEmpty() ? pgDatabase : "railway";
-                String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", pgHost, port, db);
-                
-                Map<String, Object> properties = new HashMap<>();
-                properties.put("spring.datasource.url", jdbcUrl);
-                if (pgUser != null && !pgUser.isEmpty()) {
-                    properties.put("spring.datasource.username", pgUser);
-                }
-                if (pgPassword != null && !pgPassword.isEmpty()) {
-                    properties.put("spring.datasource.password", pgPassword);
-                }
-                
-                environment.getPropertySources().addFirst(
-                    new MapPropertySource("databaseUrlConfig", properties)
-                );
-                
-                System.out.println("DatabaseConfig: Built JDBC URL from PG* variables: " + jdbcUrl);
-                return;
+            // Check if DB_URL points to internal service and warn
+            if (databaseUrl.contains("railway.internal")) {
+                System.out.println("DatabaseConfig: WARNING - DB_URL points to internal service (railway.internal). This may not be accessible.");
+                System.out.println("DatabaseConfig: Consider using PGHOST/PGPORT variables or updating DB_URL to use public proxy URL.");
             }
-            System.out.println("DatabaseConfig: No DB_URL or PG* variables found - will use defaults from application-prod.properties");
+        } else {
+            System.out.println("DatabaseConfig: No DB_URL, DATABASE_URL, or usable PG* variables found - will use defaults from application-prod.properties");
         }
         
         // If DB_URL is in postgresql:// format, convert to JDBC format
